@@ -1,0 +1,22 @@
+.camera,
+.canvas {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
+.camera {
+  left: -100vw;
+}
+
+.info {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  background-color: white;
+  padding: 10px;
+  text-align: center;
+}
