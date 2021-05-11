@@ -4,7 +4,7 @@ var __DEFINE__ = function(modId, func, req) { var m = { exports: {}, _tempexport
 var __REQUIRE__ = function(modId, source) { if(!__MODS__[modId]) return require(source); if(!__MODS__[modId].status) { var m = __MODS__[modId].m; m._exports = m._tempexports; var desp = Object.getOwnPropertyDescriptor(m, "exports"); if (desp && desp.configurable) Object.defineProperty(m, "exports", { set: function (val) { if(typeof val === "object" && val !== m._exports) { m._exports.__proto__ = val.__proto__; Object.keys(val).forEach(function (k) { m._exports[k] = val[k]; }); } m._tempexports = val }, get: function () { return m._tempexports; } }); __MODS__[modId].status = 1; __MODS__[modId].func(__MODS__[modId].req, m, m.exports); } return __MODS__[modId].m.exports; };
 var __REQUIRE_WILDCARD__ = function(obj) { if(obj && obj.__esModule) { return obj; } else { var newObj = {}; if(obj != null) { for(var k in obj) { if (Object.prototype.hasOwnProperty.call(obj, k)) newObj[k] = obj[k]; } } newObj.default = obj; return newObj; } };
 var __REQUIRE_DEFAULT__ = function(obj) { return obj && obj.__esModule ? obj.default : obj; };
-__DEFINE__(1620713786719, function(require, module, exports) {
+__DEFINE__(1620713786746, function(require, module, exports) {
 
 /**
  * @license
@@ -46,8 +46,8 @@ exports.scalePose = util_1.scalePose;
 var version_1 = require("./version");
 exports.version = version_1.version;
 //# sourceMappingURL=index.js.map
-}, function(modId) {var map = {"./mobilenet":1620713786720,"./multi_pose/decode_multiple_poses":1620713786722,"./single_pose/decode_single_pose":1620713786728,"./keypoints":1620713786726,"./posenet_model":1620713786731,"./util":1620713786734,"./version":1620713786735}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786720, function(require, module, exports) {
+}, function(modId) {var map = {"./mobilenet":1620713786747,"./multi_pose/decode_multiple_poses":1620713786749,"./single_pose/decode_single_pose":1620713786755,"./keypoints":1620713786753,"./posenet_model":1620713786758,"./util":1620713786761,"./version":1620713786762}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786747, function(require, module, exports) {
 
 /**
  * @license
@@ -98,8 +98,8 @@ var MobileNet = /** @class */ (function (_super) {
 }(base_model_1.BaseModel));
 exports.MobileNet = MobileNet;
 //# sourceMappingURL=mobilenet.js.map
-}, function(modId) { var map = {"./base_model":1620713786721}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786721, function(require, module, exports) {
+}, function(modId) { var map = {"./base_model":1620713786748}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786748, function(require, module, exports) {
 
 /**
  * @license
@@ -176,7 +176,7 @@ var BaseModel = /** @class */ (function () {
 exports.BaseModel = BaseModel;
 //# sourceMappingURL=base_model.js.map
 }, function(modId) { var map = {}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786722, function(require, module, exports) {
+__DEFINE__(1620713786749, function(require, module, exports) {
 
 /**
  * @license
@@ -307,8 +307,8 @@ function decodeMultiplePoses(scoresBuffer, offsetsBuffer, displacementsFwdBuffer
 }
 exports.decodeMultiplePoses = decodeMultiplePoses;
 //# sourceMappingURL=decode_multiple_poses.js.map
-}, function(modId) { var map = {"./build_part_with_score_queue":1620713786723,"./decode_pose":1620713786725,"./util":1620713786727}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786723, function(require, module, exports) {
+}, function(modId) { var map = {"./build_part_with_score_queue":1620713786750,"./decode_pose":1620713786752,"./util":1620713786754}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786750, function(require, module, exports) {
 
 /**
  * @license
@@ -379,8 +379,8 @@ function buildPartWithScoreQueue(scoreThreshold, localMaximumRadius, scores) {
 }
 exports.buildPartWithScoreQueue = buildPartWithScoreQueue;
 //# sourceMappingURL=build_part_with_score_queue.js.map
-}, function(modId) { var map = {"./max_heap":1620713786724}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786724, function(require, module, exports) {
+}, function(modId) { var map = {"./max_heap":1620713786751}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786751, function(require, module, exports) {
 
 /**
  * @license
@@ -468,7 +468,7 @@ var MaxHeap = /** @class */ (function () {
 exports.MaxHeap = MaxHeap;
 //# sourceMappingURL=max_heap.js.map
 }, function(modId) { var map = {}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786725, function(require, module, exports) {
+__DEFINE__(1620713786752, function(require, module, exports) {
 
 /**
  * @license
@@ -584,8 +584,8 @@ function decodePose(root, scores, offsets, outputStride, displacementsFwd, displ
 }
 exports.decodePose = decodePose;
 //# sourceMappingURL=decode_pose.js.map
-}, function(modId) { var map = {"../keypoints":1620713786726,"./util":1620713786727}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786726, function(require, module, exports) {
+}, function(modId) { var map = {"../keypoints":1620713786753,"./util":1620713786754}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786753, function(require, module, exports) {
 
 /**
  * @license
@@ -670,7 +670,7 @@ exports.partChannels = [
 ];
 //# sourceMappingURL=keypoints.js.map
 }, function(modId) { var map = {}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786727, function(require, module, exports) {
+__DEFINE__(1620713786754, function(require, module, exports) {
 
 /**
  * @license
@@ -739,8 +739,8 @@ function clampVector(a, min, max) {
 }
 exports.clampVector = clampVector;
 //# sourceMappingURL=util.js.map
-}, function(modId) { var map = {"../keypoints":1620713786726}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786728, function(require, module, exports) {
+}, function(modId) { var map = {"../keypoints":1620713786753}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786755, function(require, module, exports) {
 
 /**
  * @license
@@ -867,8 +867,8 @@ function decodeSinglePose(heatmapScores, offsets, outputStride) {
 }
 exports.decodeSinglePose = decodeSinglePose;
 //# sourceMappingURL=decode_single_pose.js.map
-}, function(modId) { var map = {"../keypoints":1620713786726,"./argmax2d":1620713786729,"./util":1620713786730}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786729, function(require, module, exports) {
+}, function(modId) { var map = {"../keypoints":1620713786753,"./argmax2d":1620713786756,"./util":1620713786757}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786756, function(require, module, exports) {
 
 /**
  * @license
@@ -907,7 +907,7 @@ function argmax2d(inputs) {
 exports.argmax2d = argmax2d;
 //# sourceMappingURL=argmax2d.js.map
 }, function(modId) { var map = {}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786730, function(require, module, exports) {
+__DEFINE__(1620713786757, function(require, module, exports) {
 
 /**
  * @license
@@ -968,8 +968,8 @@ function getOffsetPoints(heatMapCoordsBuffer, outputStride, offsetsBuffer) {
 }
 exports.getOffsetPoints = getOffsetPoints;
 //# sourceMappingURL=util.js.map
-}, function(modId) { var map = {"../keypoints":1620713786726}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786731, function(require, module, exports) {
+}, function(modId) { var map = {"../keypoints":1620713786753}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786758, function(require, module, exports) {
 
 /**
  * @license
@@ -1349,8 +1349,8 @@ function load(config) {
 }
 exports.load = load;
 //# sourceMappingURL=posenet_model.js.map
-}, function(modId) { var map = {"./checkpoints":1620713786732,"./mobilenet":1620713786720,"./multi_pose/decode_multiple_poses":1620713786722,"./resnet":1620713786733,"./single_pose/decode_single_pose":1620713786728,"./util":1620713786734}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786732, function(require, module, exports) {
+}, function(modId) { var map = {"./checkpoints":1620713786759,"./mobilenet":1620713786747,"./multi_pose/decode_multiple_poses":1620713786749,"./resnet":1620713786760,"./single_pose/decode_single_pose":1620713786755,"./util":1620713786761}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786759, function(require, module, exports) {
 
 /**
  * @license
@@ -1401,7 +1401,7 @@ function mobileNetCheckpoint(stride, multiplier, quantBytes) {
 exports.mobileNetCheckpoint = mobileNetCheckpoint;
 //# sourceMappingURL=checkpoints.js.map
 }, function(modId) { var map = {}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786733, function(require, module, exports) {
+__DEFINE__(1620713786760, function(require, module, exports) {
 
 /**
  * @license
@@ -1452,8 +1452,8 @@ var ResNet = /** @class */ (function (_super) {
 }(base_model_1.BaseModel));
 exports.ResNet = ResNet;
 //# sourceMappingURL=resnet.js.map
-}, function(modId) { var map = {"./base_model":1620713786721}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786734, function(require, module, exports) {
+}, function(modId) { var map = {"./base_model":1620713786748}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786761, function(require, module, exports) {
 
 /**
  * @license
@@ -1722,8 +1722,8 @@ function scaleAndFlipPoses(poses, _a, _b, padding, flipHorizontal) {
 }
 exports.scaleAndFlipPoses = scaleAndFlipPoses;
 //# sourceMappingURL=util.js.map
-}, function(modId) { var map = {"./keypoints":1620713786726}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1620713786735, function(require, module, exports) {
+}, function(modId) { var map = {"./keypoints":1620713786753}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1620713786762, function(require, module, exports) {
 
 /** @license See the LICENSE file. */
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -1732,6 +1732,6 @@ var version = '2.2.2';
 exports.version = version;
 //# sourceMappingURL=version.js.map
 }, function(modId) { var map = {}; return __REQUIRE__(map[modId], modId); })
-return __REQUIRE__(1620713786719);
+return __REQUIRE__(1620713786746);
 })()
 //# sourceMappingURL=index.js.map

@@ -72,7 +72,7 @@ var FusableActivation;
  * limitations under the License.
  * =============================================================================
  */
-let wasmFusedMatMul;
+var wasmFusedMatMul;
 function setup(backend) {
     wasmFusedMatMul = backend.wasm.cwrap(tfjsCore._FusedMatMul, null /* void */, [
         'number',
@@ -91,42 +91,42 @@ function setup(backend) {
     ]);
 }
 function fusedBatchMatMul(args) {
-    const { inputs, backend, attrs } = args;
-    const { a, b, bias, preluActivationWeights } = inputs;
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var a = inputs.a, b = inputs.b, bias = inputs.bias, preluActivationWeights = inputs.preluActivationWeights;
     if (a.dtype !== 'float32' || b.dtype !== 'float32') {
-        throw new Error(`_FusedMatMul for non non-float32 tensors not yet supported.`);
+        throw new Error("_FusedMatMul for non non-float32 tensors not yet supported.");
     }
-    const { transposeA, transposeB, activation, leakyreluAlpha } = attrs;
-    const aId = backend.dataIdMap.get(a.dataId).id;
-    const bId = backend.dataIdMap.get(b.dataId).id;
-    let biasId = 0;
+    var transposeA = attrs.transposeA, transposeB = attrs.transposeB, activation = attrs.activation, leakyreluAlpha = attrs.leakyreluAlpha;
+    var aId = backend.dataIdMap.get(a.dataId).id;
+    var bId = backend.dataIdMap.get(b.dataId).id;
+    var biasId = 0;
     if (bias != null) {
-        const biasData = backend.dataIdMap.get(bias.dataId);
+        var biasData = backend.dataIdMap.get(bias.dataId);
         if (biasData.shape.length !== 1) {
-            throw new Error(`_FusedMatMul only supports rank-1 bias but got ` +
-                `rank ${biasData.shape.length}.`);
+            throw new Error("_FusedMatMul only supports rank-1 bias but got " +
+                ("rank " + biasData.shape.length + "."));
         }
         biasId = biasData.id;
     }
-    const preluActivationWeightsId = preluActivationWeights == null ?
+    var preluActivationWeightsId = preluActivationWeights == null ?
         0 :
         backend.dataIdMap.get(preluActivationWeights.dataId).id;
-    const fusedActivation = FusableActivation[activation];
+    var fusedActivation = FusableActivation[activation];
     if (fusedActivation == null) {
-        throw new Error(`${activation} activation not yet supported for FusedConv2D ` +
-            `in the wasm backend.`);
+        throw new Error(activation + " activation not yet supported for FusedConv2D " +
+            "in the wasm backend.");
     }
-    const leftDim = transposeA ? a.shape[2] : a.shape[1];
-    const rightDim = transposeB ? b.shape[1] : b.shape[2];
-    const batchDim = a.shape[0];
-    const out = backend.makeOutput([batchDim, leftDim, rightDim], a.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const aShapeBytes = new Uint8Array(new Int32Array(a.shape).buffer);
-    const bShapeBytes = new Uint8Array(new Int32Array(b.shape).buffer);
+    var leftDim = transposeA ? a.shape[2] : a.shape[1];
+    var rightDim = transposeB ? b.shape[1] : b.shape[2];
+    var batchDim = a.shape[0];
+    var out = backend.makeOutput([batchDim, leftDim, rightDim], a.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var aShapeBytes = new Uint8Array(new Int32Array(a.shape).buffer);
+    var bShapeBytes = new Uint8Array(new Int32Array(b.shape).buffer);
     wasmFusedMatMul(aId, aShapeBytes, a.shape.length, bId, bShapeBytes, b.shape.length, transposeA, transposeB, fusedActivation, biasId, preluActivationWeightsId, leakyreluAlpha || 0, outId);
     return out;
 }
-const fusedMatMulConfig = {
+var fusedMatMulConfig = {
     kernelName: tfjsCore._FusedMatMul,
     backendName: 'wasm',
     setupFunc: setup,
@@ -150,16 +150,16 @@ const fusedMatMulConfig = {
  * =============================================================================
  */
 function createUnaryKernelConfig(kernelName) {
-    let wasmFunc;
+    var wasmFunc;
     function setupFunc(backend) {
         wasmFunc =
             backend.wasm.cwrap(kernelName, null /* void */, ['number', 'number']);
     }
     function kernelFunc(args) {
-        const { backend, inputs: { x } } = args;
-        const xId = backend.dataIdMap.get(x.dataId).id;
-        const out = backend.makeOutput(x.shape, x.dtype);
-        const outId = backend.dataIdMap.get(out.dataId).id;
+        var backend = args.backend, x = args.inputs.x;
+        var xId = backend.dataIdMap.get(x.dataId).id;
+        var out = backend.makeOutput(x.shape, x.dtype);
+        var outId = backend.dataIdMap.get(out.dataId).id;
         // Short-circuit zero-sized tensors.
         if (tfjsCore.util.sizeFromShape(out.shape) === 0) {
             return out;
@@ -167,7 +167,7 @@ function createUnaryKernelConfig(kernelName) {
         wasmFunc(xId, outId);
         return out;
     }
-    return { kernelName, backendName: 'wasm', setupFunc, kernelFunc };
+    return { kernelName: kernelName, backendName: 'wasm', setupFunc: setupFunc, kernelFunc: kernelFunc };
 }
 
 /**
@@ -186,7 +186,7 @@ function createUnaryKernelConfig(kernelName) {
  * limitations under the License.
  * =============================================================================
  */
-const absConfig = createUnaryKernelConfig(tfjsCore.Abs);
+var absConfig = createUnaryKernelConfig(tfjsCore.Abs);
 
 /**
  * @license
@@ -205,7 +205,7 @@ const absConfig = createUnaryKernelConfig(tfjsCore.Abs);
  * =============================================================================
  */
 function createBinaryKernelConfig(kernelName, supportsFullBroadcast, dtype) {
-    let wasmFunc;
+    var wasmFunc;
     function setupFunc(backend) {
         wasmFunc = backend.wasm.cwrap(kernelName, null /* void */, [
             'number',
@@ -219,40 +219,40 @@ function createBinaryKernelConfig(kernelName, supportsFullBroadcast, dtype) {
         ]);
     }
     function kernelFunc(args) {
-        const { backend, inputs } = args;
-        const { a, b } = inputs;
-        const aId = backend.dataIdMap.get(a.dataId).id;
-        const bId = backend.dataIdMap.get(b.dataId).id;
-        const outputType = dtype != null ? dtype : a.dtype;
-        const newShape = tfjsCore.backend_util.assertAndGetBroadcastShape(a.shape, b.shape);
-        const out = backend.makeOutput(newShape, outputType);
+        var backend = args.backend, inputs = args.inputs;
+        var a = inputs.a, b = inputs.b;
+        var aId = backend.dataIdMap.get(a.dataId).id;
+        var bId = backend.dataIdMap.get(b.dataId).id;
+        var outputType = dtype != null ? dtype : a.dtype;
+        var newShape = tfjsCore.backend_util.assertAndGetBroadcastShape(a.shape, b.shape);
+        var out = backend.makeOutput(newShape, outputType);
         // Short-circuit zero-sized tensors.
         if (tfjsCore.util.sizeFromShape(newShape) === 0) {
             return out;
         }
-        const aShapeBytes = new Uint8Array(new Int32Array(a.shape).buffer);
-        const bShapeBytes = new Uint8Array(new Int32Array(b.shape).buffer);
-        const outId = backend.dataIdMap.get(out.dataId).id;
-        const kernelFunc = () => wasmFunc(aId, aShapeBytes, a.shape.length, bId, bShapeBytes, b.shape.length, CppDType[a.dtype], outId);
+        var aShapeBytes = new Uint8Array(new Int32Array(a.shape).buffer);
+        var bShapeBytes = new Uint8Array(new Int32Array(b.shape).buffer);
+        var outId = backend.dataIdMap.get(out.dataId).id;
+        var kernelFunc = function () { return wasmFunc(aId, aShapeBytes, a.shape.length, bId, bShapeBytes, b.shape.length, CppDType[a.dtype], outId); };
         // Currently only some float operations support full broadcast.
         if (supportsFullBroadcast && a.dtype === 'float32') {
             kernelFunc();
             return out;
         }
-        const aBroadcastDims = tfjsCore.backend_util.getBroadcastDims(a.shape, newShape);
-        const bBroadcastDims = tfjsCore.backend_util.getBroadcastDims(b.shape, newShape);
-        const loopsOverAllOfA = aBroadcastDims.every((v, i) => v === i);
-        const loopsOverAllOfB = bBroadcastDims.every((v, i) => v === i);
+        var aBroadcastDims = tfjsCore.backend_util.getBroadcastDims(a.shape, newShape);
+        var bBroadcastDims = tfjsCore.backend_util.getBroadcastDims(b.shape, newShape);
+        var loopsOverAllOfA = aBroadcastDims.every(function (v, i) { return v === i; });
+        var loopsOverAllOfB = bBroadcastDims.every(function (v, i) { return v === i; });
         if (loopsOverAllOfA && loopsOverAllOfB) {
             kernelFunc();
             return out;
         }
         else {
-            throw new Error(`Broadcasting along outer dims is not yet ` +
-                `supported for ${a.dtype} ${kernelName}.`);
+            throw new Error("Broadcasting along outer dims is not yet " +
+                ("supported for " + a.dtype + " " + kernelName + "."));
         }
     }
-    return { kernelName, backendName: 'wasm', setupFunc, kernelFunc };
+    return { kernelName: kernelName, backendName: 'wasm', setupFunc: setupFunc, kernelFunc: kernelFunc };
 }
 
 /**
@@ -271,8 +271,8 @@ function createBinaryKernelConfig(kernelName, supportsFullBroadcast, dtype) {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast = true;
-const addConfig = createBinaryKernelConfig(tfjsCore.Add, supportsFullBroadcast);
+var supportsFullBroadcast = true;
+var addConfig = createBinaryKernelConfig(tfjsCore.Add, supportsFullBroadcast);
 
 /**
  * @license
@@ -290,7 +290,7 @@ const addConfig = createBinaryKernelConfig(tfjsCore.Add, supportsFullBroadcast);
  * limitations under the License.
  * =============================================================================
  */
-let wasmFunc;
+var wasmFunc;
 function setupFunc(backend) {
     wasmFunc = backend.wasm.cwrap(tfjsCore.AddN, null /* void */, [
         'array',
@@ -300,22 +300,22 @@ function setupFunc(backend) {
     ]);
 }
 function addn(args) {
-    const { inputs, backend } = args;
-    const out = backend.makeOutput(inputs[0].shape, inputs[0].dtype);
+    var inputs = args.inputs, backend = args.backend;
+    var out = backend.makeOutput(inputs[0].shape, inputs[0].dtype);
     // Short-circuit zero-sized tensors.
     if (tfjsCore.util.sizeFromShape(out.shape) === 0) {
         return out;
     }
-    const inputIds = inputs.map(x => backend.dataIdMap.get(x.dataId).id);
-    const inputIdsBytes = new Uint8Array(new Int32Array(inputIds).buffer);
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var inputIds = inputs.map(function (x) { return backend.dataIdMap.get(x.dataId).id; });
+    var inputIdsBytes = new Uint8Array(new Int32Array(inputIds).buffer);
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmFunc(inputIdsBytes, inputIds.length, CppDType[out.dtype], outId);
     return out;
 }
-const addNConfig = {
+var addNConfig = {
     kernelName: tfjsCore.AddN,
     backendName: 'wasm',
-    setupFunc,
+    setupFunc: setupFunc,
     kernelFunc: addn,
 };
 
@@ -336,14 +336,14 @@ const addNConfig = {
  * =============================================================================
  */
 function identity(args) {
-    const { inputs: { x }, backend } = args;
-    const out = backend.makeOutput(x.shape, x.dtype);
-    const inVals = backend.typedArrayFromHeap(x);
-    const outVals = backend.typedArrayFromHeap(out);
+    var x = args.inputs.x, backend = args.backend;
+    var out = backend.makeOutput(x.shape, x.dtype);
+    var inVals = backend.typedArrayFromHeap(x);
+    var outVals = backend.typedArrayFromHeap(out);
     outVals.set(inVals);
     return out;
 }
-const identityConfig = {
+var identityConfig = {
     kernelName: tfjsCore.Identity,
     backendName: 'wasm',
     kernelFunc: identity,
@@ -365,7 +365,7 @@ const identityConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmTranspose;
+var wasmTranspose;
 function setup$1(backend) {
     wasmTranspose = backend.wasm.cwrap(tfjsCore.Transpose, null /* void */, [
         'number',
@@ -378,46 +378,46 @@ function setup$1(backend) {
     ]);
 }
 function transpose(args) {
-    const { inputs, backend, attrs } = args;
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
     // Reduce any dimensions with size one. Lower-rank transpose kernel performs
     // better due to simpler memory access pattern.
-    const [reducedShape, perm] = removeOneSizeDims(inputs.x.shape, attrs.perm);
-    let permIsNoOp = true;
-    for (let i = 0; i < perm.length; i++) {
+    var _a = removeOneSizeDims(inputs.x.shape, attrs.perm), reducedShape = _a[0], perm = _a[1];
+    var permIsNoOp = true;
+    for (var i = 0; i < perm.length; i++) {
         if (perm[i] !== i) {
             permIsNoOp = false;
         }
     }
-    const outShape = computeOutShape(inputs.x.shape, attrs.perm);
-    const x = {
+    var outShape = computeOutShape(inputs.x.shape, attrs.perm);
+    var x = {
         dataId: inputs.x.dataId,
         shape: reducedShape,
         dtype: inputs.x.dtype
     };
     if (permIsNoOp) {
-        const cloned = identity({ inputs, backend });
+        var cloned = identity({ inputs: inputs, backend: backend });
         cloned.shape = outShape;
         return cloned;
     }
-    const out = backend.makeOutput(outShape, x.dtype);
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const permBytes = new Uint8Array(new Int32Array(perm).buffer);
-    const xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
+    var out = backend.makeOutput(outShape, x.dtype);
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var permBytes = new Uint8Array(new Int32Array(perm).buffer);
+    var xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
     wasmTranspose(xId, xShapeBytes, x.shape.length, CppDType[x.dtype], outId, permBytes, perm.length);
     return out;
 }
 function computeOutShape(inShape, perm) {
-    const outShape = new Array(inShape.length);
-    for (let i = 0; i < outShape.length; i++) {
+    var outShape = new Array(inShape.length);
+    for (var i = 0; i < outShape.length; i++) {
         outShape[i] = inShape[perm[i]];
     }
     return outShape;
 }
 function removeOneSizeDims(shape, perm) {
-    const newShape = [];
-    const newPerm = [];
-    for (let i = 0; i < shape.length; ++i) {
+    var newShape = [];
+    var newPerm = [];
+    for (var i = 0; i < shape.length; ++i) {
         if (shape[i] !== 1) {
             newShape.push(shape[i]);
         }
@@ -425,9 +425,9 @@ function removeOneSizeDims(shape, perm) {
             newPerm.push(perm[i]);
         }
     }
-    for (let i = 0; i < newPerm.length; ++i) {
-        let minValIdx = -1;
-        for (let j = 0; j < newPerm.length; ++j) {
+    for (var i = 0; i < newPerm.length; ++i) {
+        var minValIdx = -1;
+        for (var j = 0; j < newPerm.length; ++j) {
             if (newPerm[j] >= i &&
                 (minValIdx === -1 || newPerm[minValIdx] > newPerm[j])) {
                 minValIdx = j;
@@ -437,7 +437,7 @@ function removeOneSizeDims(shape, perm) {
     }
     return [newShape, newPerm];
 }
-const transposeConfig = {
+var transposeConfig = {
     kernelName: tfjsCore.Transpose,
     backendName: 'wasm',
     kernelFunc: transpose,
@@ -469,28 +469,28 @@ const transposeConfig = {
  * @param backend wasm backend instance
  */
 function permuteAxesAndTranspose(x, axis, backend) {
-    const xShape = x.shape;
-    const xRank = x.shape.length;
-    const originalAxes = tfjsCore.util.parseAxisParam(axis, xShape);
-    let axes = originalAxes;
-    const permutedAxes = tfjsCore.backend_util.getAxesPermutation(axes, xRank);
-    let xTransposed = null;
-    let inputWasTransposed = false;
+    var xShape = x.shape;
+    var xRank = x.shape.length;
+    var originalAxes = tfjsCore.util.parseAxisParam(axis, xShape);
+    var axes = originalAxes;
+    var permutedAxes = tfjsCore.backend_util.getAxesPermutation(axes, xRank);
+    var xTransposed = null;
+    var inputWasTransposed = false;
     if (permutedAxes != null) {
-        const newShape = new Array(xRank);
-        for (let i = 0; i < newShape.length; i++) {
+        var newShape = new Array(xRank);
+        for (var i = 0; i < newShape.length; i++) {
             newShape[i] = xShape[permutedAxes[i]];
         }
         axes = tfjsCore.backend_util.getInnerMostAxes(axes.length, xRank);
         xTransposed =
-            transpose({ inputs: { x }, attrs: { perm: permutedAxes }, backend });
-        const xId = backend.dataIdMap.get(x.dataId).id;
-        const transposedId = backend.dataIdMap.get(xTransposed.dataId).id;
+            transpose({ inputs: { x: x }, attrs: { perm: permutedAxes }, backend: backend });
+        var xId = backend.dataIdMap.get(x.dataId).id;
+        var transposedId = backend.dataIdMap.get(xTransposed.dataId).id;
         if (transposedId !== xId) {
             inputWasTransposed = true;
         }
     }
-    return { transposed: xTransposed, originalAxes, axes, inputWasTransposed };
+    return { transposed: xTransposed, originalAxes: originalAxes, axes: axes, inputWasTransposed: inputWasTransposed };
 }
 
 /**
@@ -509,30 +509,30 @@ function permuteAxesAndTranspose(x, axis, backend) {
  * limitations under the License.
  * =============================================================================
  */
-let wasmAll;
+var wasmAll;
 function setup$2(backend) {
     wasmAll = backend.wasm.cwrap(tfjsCore.All, null /*void*/, ['number, number, number']);
 }
 function all(args) {
-    const { backend, inputs, attrs } = args;
-    const { axis, keepDims } = attrs;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    let inputId = xId;
-    let input = x;
-    const { transposed, axes, originalAxes, inputWasTransposed } = permuteAxesAndTranspose(x, axis, backend);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var axis = attrs.axis, keepDims = attrs.keepDims;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var inputId = xId;
+    var input = x;
+    var _a = permuteAxesAndTranspose(x, axis, backend), transposed = _a.transposed, axes = _a.axes, originalAxes = _a.originalAxes, inputWasTransposed = _a.inputWasTransposed;
     if (inputWasTransposed) {
-        const transposedId = backend.dataIdMap.get(transposed.dataId).id;
+        var transposedId = backend.dataIdMap.get(transposed.dataId).id;
         input = transposed;
         inputId = transposedId;
     }
-    const inputRank = input.shape.length;
+    var inputRank = input.shape.length;
     tfjsCore.backend_util.assertAxesAreInnerMostDims('all', axes, inputRank);
-    const [outShape, reduceShape] = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, axes);
-    const reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
-    const out = backend.makeOutput(outShape, x.dtype);
+    var _b = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, axes), outShape = _b[0], reduceShape = _b[1];
+    var reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
+    var out = backend.makeOutput(outShape, x.dtype);
     if (tfjsCore.util.sizeFromShape(input.shape) !== 0) {
-        const outId = backend.dataIdMap.get(out.dataId).id;
+        var outId = backend.dataIdMap.get(out.dataId).id;
         wasmAll(inputId, reduceSize, outId);
     }
     if (inputWasTransposed) {
@@ -541,12 +541,12 @@ function all(args) {
     }
     if (keepDims) {
         // reshape
-        const newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
+        var newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
         out.shape = newShape;
     }
     return out;
 }
-const allConfig = {
+var allConfig = {
     kernelName: tfjsCore.All,
     backendName: 'wasm',
     setupFunc: setup$2,
@@ -569,30 +569,30 @@ const allConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmAny;
+var wasmAny;
 function setup$3(backend) {
     wasmAny = backend.wasm.cwrap(tfjsCore.Any, null /*void*/, ['number, number, number']);
 }
 function any(args) {
-    const { backend, inputs, attrs } = args;
-    const { axis, keepDims } = attrs;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    let inputId = xId;
-    let input = x;
-    const { transposed, axes, originalAxes, inputWasTransposed } = permuteAxesAndTranspose(x, axis, backend);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var axis = attrs.axis, keepDims = attrs.keepDims;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var inputId = xId;
+    var input = x;
+    var _a = permuteAxesAndTranspose(x, axis, backend), transposed = _a.transposed, axes = _a.axes, originalAxes = _a.originalAxes, inputWasTransposed = _a.inputWasTransposed;
     if (inputWasTransposed) {
-        const transposedId = backend.dataIdMap.get(transposed.dataId).id;
+        var transposedId = backend.dataIdMap.get(transposed.dataId).id;
         input = transposed;
         inputId = transposedId;
     }
-    const inputRank = input.shape.length;
+    var inputRank = input.shape.length;
     tfjsCore.backend_util.assertAxesAreInnerMostDims('any', axes, inputRank);
-    const [outShape, reduceShape] = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, axes);
-    const reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
-    const out = backend.makeOutput(outShape, x.dtype);
+    var _b = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, axes), outShape = _b[0], reduceShape = _b[1];
+    var reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
+    var out = backend.makeOutput(outShape, x.dtype);
     if (tfjsCore.util.sizeFromShape(input.shape) !== 0) {
-        const outId = backend.dataIdMap.get(out.dataId).id;
+        var outId = backend.dataIdMap.get(out.dataId).id;
         wasmAny(inputId, reduceSize, outId);
     }
     if (inputWasTransposed) {
@@ -601,12 +601,12 @@ function any(args) {
     }
     if (keepDims) {
         // reshape
-        const newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
+        var newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
         out.shape = newShape;
     }
     return out;
 }
-const anyConfig = {
+var anyConfig = {
     kernelName: tfjsCore.Any,
     backendName: 'wasm',
     setupFunc: setup$3,
@@ -629,7 +629,7 @@ const anyConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmFunc$1;
+var wasmFunc$1;
 function setup$4(backend) {
     wasmFunc$1 = backend.wasm.cwrap(tfjsCore.ArgMax, null /* void */, [
         'number',
@@ -640,15 +640,15 @@ function setup$4(backend) {
     ]);
 }
 function argmax(args) {
-    const { backend, inputs, attrs } = args;
-    const { axis } = attrs;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    let inputId = xId;
-    let input = x;
-    const { transposed, axes, inputWasTransposed } = permuteAxesAndTranspose(x, axis, backend);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var axis = attrs.axis;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var inputId = xId;
+    var input = x;
+    var _a = permuteAxesAndTranspose(x, axis, backend), transposed = _a.transposed, axes = _a.axes, inputWasTransposed = _a.inputWasTransposed;
     if (inputWasTransposed) {
-        const transposedId = backend.dataIdMap.get(transposed.dataId).id;
+        var transposedId = backend.dataIdMap.get(transposed.dataId).id;
         if (transposedId !== xId) {
             // transpose was not a no-op. We will need to dispose of this
             // once we are done.
@@ -656,11 +656,11 @@ function argmax(args) {
             inputId = transposedId;
         }
     }
-    const outShape = input.shape.slice(0, -1);
-    const out = backend.makeOutput(outShape, 'int32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const outerSize = tfjsCore.util.sizeFromShape(out.shape);
-    const innerSize = input.shape[axes[0]];
+    var outShape = input.shape.slice(0, -1);
+    var out = backend.makeOutput(outShape, 'int32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var outerSize = tfjsCore.util.sizeFromShape(out.shape);
+    var innerSize = input.shape[axes[0]];
     wasmFunc$1(inputId, CppDType[input.dtype], outerSize, innerSize, outId);
     if (inputWasTransposed) {
         // dispose of the transposed tensor.
@@ -668,7 +668,7 @@ function argmax(args) {
     }
     return out;
 }
-const argMaxConfig = {
+var argMaxConfig = {
     kernelName: tfjsCore.ArgMax,
     backendName: 'wasm',
     kernelFunc: argmax,
@@ -691,7 +691,7 @@ const argMaxConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmAvgPool;
+var wasmAvgPool;
 function setup$5(backend) {
     wasmAvgPool = backend.wasm.cwrap(tfjsCore.AvgPool, null /* void */, [
         'number',
@@ -711,34 +711,34 @@ function setup$5(backend) {
     ]);
 }
 function avgPool(args) {
-    const { inputs, attrs, backend } = args;
-    const x = inputs.x;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const { filterSize, strides, pad, dimRoundingMode } = attrs;
-    const convInfo = tfjsCore.backend_util.computePool2DInfo(x.shape, filterSize, strides, 1 /* dilations */, pad, dimRoundingMode);
-    const filterHeight = convInfo.filterHeight;
-    const filterWidth = convInfo.filterWidth;
-    const padTop = convInfo.padInfo.top;
-    const padRight = convInfo.padInfo.right;
-    const padBottom = convInfo.padInfo.bottom;
-    const padLeft = convInfo.padInfo.left;
-    const strideHeight = convInfo.strideHeight;
-    const strideWidth = convInfo.strideWidth;
-    const channels = convInfo.inChannels;
+    var inputs = args.inputs, attrs = args.attrs, backend = args.backend;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var filterSize = attrs.filterSize, strides = attrs.strides, pad = attrs.pad, dimRoundingMode = attrs.dimRoundingMode;
+    var convInfo = tfjsCore.backend_util.computePool2DInfo(x.shape, filterSize, strides, 1 /* dilations */, pad, dimRoundingMode);
+    var filterHeight = convInfo.filterHeight;
+    var filterWidth = convInfo.filterWidth;
+    var padTop = convInfo.padInfo.top;
+    var padRight = convInfo.padInfo.right;
+    var padBottom = convInfo.padInfo.bottom;
+    var padLeft = convInfo.padInfo.left;
+    var strideHeight = convInfo.strideHeight;
+    var strideWidth = convInfo.strideWidth;
+    var channels = convInfo.inChannels;
     if (convInfo.dataFormat !== 'channelsLast') {
-        throw new Error(`wasm backend does not support dataFormat:'` +
-            `${convInfo.dataFormat}'. Please use 'channelsLast'.`);
+        throw new Error("wasm backend does not support dataFormat:'" +
+            (convInfo.dataFormat + "'. Please use 'channelsLast'."));
     }
     if (convInfo.dilationWidth !== 1 || convInfo.dilationHeight !== 1) {
-        throw new Error(`was backend only supports average pooling with dilation = [1, 1], ` +
-            `got [${convInfo.dilationHeight}, ${convInfo.dilationWidth}].`);
+        throw new Error("was backend only supports average pooling with dilation = [1, 1], " +
+            ("got [" + convInfo.dilationHeight + ", " + convInfo.dilationWidth + "]."));
     }
-    const out = backend.makeOutput(convInfo.outShape, 'float32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var out = backend.makeOutput(convInfo.outShape, 'float32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmAvgPool(xId, x.shape[0], x.shape[1], x.shape[2], filterHeight, filterWidth, padTop, padRight, padBottom, padLeft, strideHeight, strideWidth, channels, outId);
     return out;
 }
-const avgPoolConfig = {
+var avgPoolConfig = {
     kernelName: tfjsCore.AvgPool,
     backendName: 'wasm',
     setupFunc: setup$5,
@@ -762,18 +762,18 @@ const avgPoolConfig = {
  * =============================================================================
  */
 function reshape(args) {
-    const { inputs, attrs } = args;
-    const { x } = inputs;
-    const { shape } = attrs;
-    const xSize = tfjsCore.util.sizeFromShape(x.shape);
-    const $shape = tfjsCore.util.inferFromImplicitShape(shape, xSize);
-    tfjsCore.util.assert(xSize === tfjsCore.util.sizeFromShape($shape), () => `new shape: ${$shape}, old shape: ${x.shape}. New shape and old ` +
-        `shape must have the same number of elements.`);
+    var inputs = args.inputs, attrs = args.attrs;
+    var x = inputs.x;
+    var shape = attrs.shape;
+    var xSize = tfjsCore.util.sizeFromShape(x.shape);
+    var $shape = tfjsCore.util.inferFromImplicitShape(shape, xSize);
+    tfjsCore.util.assert(xSize === tfjsCore.util.sizeFromShape($shape), function () { return "new shape: " + $shape + ", old shape: " + x.shape + ". New shape and old " +
+        "shape must have the same number of elements."; });
     // Backend needs to track refCount for the dataId for reshape op
     args.backend.incRef(x.dataId);
     return { dataId: x.dataId, shape: $shape, dtype: x.dtype };
 }
-const reshapeConfig = {
+var reshapeConfig = {
     kernelName: tfjsCore.Reshape,
     backendName: 'wasm',
     kernelFunc: reshape,
@@ -795,7 +795,7 @@ const reshapeConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmBatchMatMul;
+var wasmBatchMatMul;
 function setup$6(backend) {
     wasmBatchMatMul = backend.wasm.cwrap(tfjsCore.BatchMatMul, null /* void */, [
         'number',
@@ -810,55 +810,55 @@ function setup$6(backend) {
     ]);
 }
 function batchMatMul(args) {
-    const { inputs, backend, attrs } = args;
-    const { a, b } = inputs;
-    const { transposeA, transposeB } = attrs;
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var a = inputs.a, b = inputs.b;
+    var transposeA = attrs.transposeA, transposeB = attrs.transposeB;
     if (a.dtype !== 'float32' || b.dtype !== 'float32') {
-        throw new Error(`BatchMatMul for non non-float32 tensors not yet supported.`);
+        throw new Error("BatchMatMul for non non-float32 tensors not yet supported.");
     }
-    const aRank = a.shape.length;
-    const bRank = b.shape.length;
-    const innerShapeA = transposeA ? a.shape[aRank - 2] : a.shape[aRank - 1];
-    const innerShapeB = transposeB ? b.shape[bRank - 1] : b.shape[bRank - 2];
-    const outerShapeA = transposeA ? a.shape[aRank - 1] : a.shape[aRank - 2];
-    const outerShapeB = transposeB ? b.shape[bRank - 2] : b.shape[bRank - 1];
-    const outerDimsA = a.shape.slice(0, -2);
-    const outerDimsB = b.shape.slice(0, -2);
-    const batchDimA = tfjsCore.util.sizeFromShape(outerDimsA);
-    const batchDimB = tfjsCore.util.sizeFromShape(outerDimsB);
-    const batchDimsCompatible = batchDimA === batchDimB || batchDimA === 1 || batchDimB === 1;
-    tfjsCore.util.assert(aRank >= 2 && bRank >= 2 && batchDimsCompatible, () => `Error in matMul: the input batch dimensions must either be the ` +
-        `same or at least one input batch dimension must be 1. Got input ` +
-        `batch dimensions of (${outerDimsA}) and (${outerDimsB}).`);
-    const outShapeOuterDims = batchDimA > batchDimB ? a.shape.slice(0, -2) : b.shape.slice(0, -2);
-    const outShape = outShapeOuterDims.concat([outerShapeA, outerShapeB]);
-    tfjsCore.util.assert(innerShapeA === innerShapeB, () => `Error in matMul: inner shapes (${innerShapeA}) and (` +
-        `${innerShapeB}) of Tensors with shapes ${a.shape} and ` +
-        `${b.shape} and transposeA=${transposeA}` +
-        ` and transposeB=${transposeB} must match.`);
-    const a3dShape = transposeA ? [batchDimA, innerShapeA, outerShapeA] :
+    var aRank = a.shape.length;
+    var bRank = b.shape.length;
+    var innerShapeA = transposeA ? a.shape[aRank - 2] : a.shape[aRank - 1];
+    var innerShapeB = transposeB ? b.shape[bRank - 1] : b.shape[bRank - 2];
+    var outerShapeA = transposeA ? a.shape[aRank - 1] : a.shape[aRank - 2];
+    var outerShapeB = transposeB ? b.shape[bRank - 2] : b.shape[bRank - 1];
+    var outerDimsA = a.shape.slice(0, -2);
+    var outerDimsB = b.shape.slice(0, -2);
+    var batchDimA = tfjsCore.util.sizeFromShape(outerDimsA);
+    var batchDimB = tfjsCore.util.sizeFromShape(outerDimsB);
+    var batchDimsCompatible = batchDimA === batchDimB || batchDimA === 1 || batchDimB === 1;
+    tfjsCore.util.assert(aRank >= 2 && bRank >= 2 && batchDimsCompatible, function () { return "Error in matMul: the input batch dimensions must either be the " +
+        "same or at least one input batch dimension must be 1. Got input " +
+        ("batch dimensions of (" + outerDimsA + ") and (" + outerDimsB + ")."); });
+    var outShapeOuterDims = batchDimA > batchDimB ? a.shape.slice(0, -2) : b.shape.slice(0, -2);
+    var outShape = outShapeOuterDims.concat([outerShapeA, outerShapeB]);
+    tfjsCore.util.assert(innerShapeA === innerShapeB, function () { return "Error in matMul: inner shapes (" + innerShapeA + ") and (" +
+        (innerShapeB + ") of Tensors with shapes " + a.shape + " and ") +
+        (b.shape + " and transposeA=" + transposeA) +
+        (" and transposeB=" + transposeB + " must match."); });
+    var a3dShape = transposeA ? [batchDimA, innerShapeA, outerShapeA] :
         [batchDimA, outerShapeA, innerShapeA];
-    const b3dShape = transposeB ? [batchDimB, outerShapeB, innerShapeB] :
+    var b3dShape = transposeB ? [batchDimB, outerShapeB, innerShapeB] :
         [batchDimB, innerShapeB, outerShapeB];
     // The rest of the implementation is designed to operate on rank-3 tensors
-    const a3d = reshape({ inputs: { x: a }, backend, attrs: { shape: a3dShape } });
-    const b3d = reshape({ inputs: { x: b }, backend, attrs: { shape: b3dShape } });
-    const a3dId = backend.dataIdMap.get(a3d.dataId).id;
-    const b3dId = backend.dataIdMap.get(b3d.dataId).id;
-    const leftDim = transposeA ? a3d.shape[2] : a3d.shape[1];
-    const rightDim = transposeB ? b3d.shape[1] : b3d.shape[2];
-    const batchDim = Math.max(batchDimA, batchDimB);
-    const out = backend.makeOutput([batchDim, leftDim, rightDim], a3d.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const aShapeBytes = new Uint8Array(new Int32Array(a3d.shape).buffer);
-    const bShapeBytes = new Uint8Array(new Int32Array(b3d.shape).buffer);
+    var a3d = reshape({ inputs: { x: a }, backend: backend, attrs: { shape: a3dShape } });
+    var b3d = reshape({ inputs: { x: b }, backend: backend, attrs: { shape: b3dShape } });
+    var a3dId = backend.dataIdMap.get(a3d.dataId).id;
+    var b3dId = backend.dataIdMap.get(b3d.dataId).id;
+    var leftDim = transposeA ? a3d.shape[2] : a3d.shape[1];
+    var rightDim = transposeB ? b3d.shape[1] : b3d.shape[2];
+    var batchDim = Math.max(batchDimA, batchDimB);
+    var out = backend.makeOutput([batchDim, leftDim, rightDim], a3d.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var aShapeBytes = new Uint8Array(new Int32Array(a3d.shape).buffer);
+    var bShapeBytes = new Uint8Array(new Int32Array(b3d.shape).buffer);
     wasmBatchMatMul(a3dId, aShapeBytes, a3d.shape.length, b3dId, bShapeBytes, b3d.shape.length, transposeA, transposeB, outId);
     backend.disposeData(a3d.dataId);
     backend.disposeData(b3d.dataId);
     out.shape = outShape;
     return out;
 }
-const batchMatMulConfig = {
+var batchMatMulConfig = {
     kernelName: tfjsCore.BatchMatMul,
     backendName: 'wasm',
     setupFunc: setup$6,
@@ -882,14 +882,14 @@ const batchMatMulConfig = {
  * =============================================================================
  */
 function cast(args) {
-    const { inputs: { x }, attrs: { dtype }, backend } = args;
-    const out = backend.makeOutput(x.shape, dtype);
-    const inVals = backend.typedArrayFromHeap(x);
-    const outVals = backend.typedArrayFromHeap(out);
+    var x = args.inputs.x, dtype = args.attrs.dtype, backend = args.backend;
+    var out = backend.makeOutput(x.shape, dtype);
+    var inVals = backend.typedArrayFromHeap(x);
+    var outVals = backend.typedArrayFromHeap(out);
     outVals.set(inVals);
     return out;
 }
-const castConfig = {
+var castConfig = {
     kernelName: tfjsCore.Cast,
     backendName: 'wasm',
     kernelFunc: cast,
@@ -911,7 +911,7 @@ const castConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const ceilConfig = createUnaryKernelConfig(tfjsCore.Ceil);
+var ceilConfig = createUnaryKernelConfig(tfjsCore.Ceil);
 
 /**
  * @license
@@ -929,7 +929,7 @@ const ceilConfig = createUnaryKernelConfig(tfjsCore.Ceil);
  * limitations under the License.
  * =============================================================================
  */
-let wasmClip;
+var wasmClip;
 function setup$7(backend) {
     wasmClip = backend.wasm.cwrap(tfjsCore.ClipByValue, null /* void */, [
         'number',
@@ -939,16 +939,16 @@ function setup$7(backend) {
     ]);
 }
 function clip(args) {
-    const { inputs, backend, attrs } = args;
-    const { x } = inputs;
-    const { clipValueMin, clipValueMax } = attrs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const out = backend.makeOutput(x.shape, x.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var x = inputs.x;
+    var clipValueMin = attrs.clipValueMin, clipValueMax = attrs.clipValueMax;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var out = backend.makeOutput(x.shape, x.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmClip(xId, clipValueMin, clipValueMax, outId);
     return out;
 }
-const clipByValueConfig = {
+var clipByValueConfig = {
     kernelName: tfjsCore.ClipByValue,
     backendName: 'wasm',
     setupFunc: setup$7,
@@ -1099,19 +1099,19 @@ function sliceImpl(vals, begin, size, shape, dtype) {
  * =============================================================================
  */
 function concat(args) {
-    const { inputs, backend } = args;
-    const axis = tfjsCore.util.parseAxisParam(args.attrs.axis, inputs[0].shape)[0];
-    let outShape = tfjsCore.backend_util.computeOutShape(inputs.map(t => t.shape), axis);
+    var inputs = args.inputs, backend = args.backend;
+    var axis = tfjsCore.util.parseAxisParam(args.attrs.axis, inputs[0].shape)[0];
+    var outShape = tfjsCore.backend_util.computeOutShape(inputs.map(function (t) { return t.shape; }), axis);
     // Keep only non-empty tensors (ignore tensors with 0 in their shape).
-    const $inputs = inputs.filter(t => tfjsCore.util.sizeFromShape(t.shape) > 0);
+    var $inputs = inputs.filter(function (t) { return tfjsCore.util.sizeFromShape(t.shape) > 0; });
     if ($inputs.length === 1) {
-        return identity({ inputs: { x: $inputs[0] }, backend });
+        return identity({ inputs: { x: $inputs[0] }, backend: backend });
     }
-    const out = backend.makeOutput(outShape, inputs[0].dtype);
+    var out = backend.makeOutput(outShape, inputs[0].dtype);
     if (tfjsCore.util.sizeFromShape(outShape) === 0) {
         return out;
     }
-    const shapes = $inputs.map(t => t.shape);
+    var shapes = $inputs.map(function (t) { return t.shape; });
     tfjsCore.backend_util.assertParamsConsistent(shapes, axis);
     if ($inputs[0].dtype === 'string') {
         // Any concat of n-dimensional tensors across any axis can be reduced to
@@ -1121,48 +1121,48 @@ function concat(args) {
         // into a two-dimensional tensor by collapsing these two sets of axes and
         // concatenate the resulting matrices across the axis 1, finally reshaping
         // the result to have the proper shape.
-        const inputs2D = $inputs.map(t => {
-            const innerSize = tfjsCore.util.sizeFromShape(t.shape.slice(axis));
-            const shape = [-1, innerSize];
-            return reshape({ inputs: { x: t }, backend, attrs: { shape } });
+        var inputs2D = $inputs.map(function (t) {
+            var innerSize = tfjsCore.util.sizeFromShape(t.shape.slice(axis));
+            var shape = [-1, innerSize];
+            return reshape({ inputs: { x: t }, backend: backend, attrs: { shape: shape } });
         });
-        const inputsValShapes = inputs2D.map(t => {
+        var inputsValShapes = inputs2D.map(function (t) {
             return { vals: backend.readSync(t.dataId), shape: t.shape };
         });
         // Concats 2d tensors along axis=1.
         outShape =
-            tfjsCore.backend_util.computeOutShape(inputs2D.map(t => t.shape), 1 /* axis */);
-        const simplyConcat = inputs2D[0].shape[0] === 1;
-        const outVals = concatImpl(inputsValShapes, outShape, inputs[0].dtype, simplyConcat);
-        const finalOutShape = tfjsCore.backend_util.computeOutShape($inputs.map(t => t.shape), axis);
+            tfjsCore.backend_util.computeOutShape(inputs2D.map(function (t) { return t.shape; }), 1 /* axis */);
+        var simplyConcat = inputs2D[0].shape[0] === 1;
+        var outVals_1 = concatImpl(inputsValShapes, outShape, inputs[0].dtype, simplyConcat);
+        var finalOutShape = tfjsCore.backend_util.computeOutShape($inputs.map(function (t) { return t.shape; }), axis);
         out.shape = finalOutShape;
-        const outData = backend.dataIdMap.get(out.dataId);
-        outData.stringBytes = tfjsCore.backend_util.fromStringArrayToUint8(outVals);
-        inputs2D.forEach(t => backend.disposeData(t.dataId));
+        var outData = backend.dataIdMap.get(out.dataId);
+        outData.stringBytes = tfjsCore.backend_util.fromStringArrayToUint8(outVals_1);
+        inputs2D.forEach(function (t) { return backend.disposeData(t.dataId); });
         return out;
     }
-    const batchDim = tfjsCore.util.sizeFromShape($inputs[0].shape.slice(0, axis));
-    let sumInnerDims = 0;
-    const innerDims = $inputs.map(input => {
-        const innerDim = tfjsCore.util.sizeFromShape(input.shape.slice(axis));
+    var batchDim = tfjsCore.util.sizeFromShape($inputs[0].shape.slice(0, axis));
+    var sumInnerDims = 0;
+    var innerDims = $inputs.map(function (input) {
+        var innerDim = tfjsCore.util.sizeFromShape(input.shape.slice(axis));
         sumInnerDims += innerDim;
         return innerDim;
     });
-    const inVals = $inputs.map(input => backend.typedArrayFromHeap(input));
-    const outVals = backend.typedArrayFromHeap(out);
-    for (let b = 0; b < batchDim; b++) {
-        let outOffset = b * sumInnerDims;
-        for (let i = 0; i < inVals.length; i++) {
-            const innerDim = innerDims[i];
-            const inOffset = b * innerDim;
-            const vals = inVals[i].subarray(inOffset, inOffset + innerDim);
+    var inVals = $inputs.map(function (input) { return backend.typedArrayFromHeap(input); });
+    var outVals = backend.typedArrayFromHeap(out);
+    for (var b = 0; b < batchDim; b++) {
+        var outOffset = b * sumInnerDims;
+        for (var i = 0; i < inVals.length; i++) {
+            var innerDim = innerDims[i];
+            var inOffset = b * innerDim;
+            var vals = inVals[i].subarray(inOffset, inOffset + innerDim);
             outVals.set(vals, outOffset);
             outOffset += innerDim;
         }
     }
     return out;
 }
-const concatConfig = {
+var concatConfig = {
     kernelName: tfjsCore.Concat,
     backendName: 'wasm',
     kernelFunc: concat,
@@ -1184,7 +1184,7 @@ const concatConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmConv2d;
+var wasmConv2d;
 function setup$8(backend) {
     wasmConv2d = backend.wasm.cwrap(tfjsCore.Conv2D, null /* void */, [
         'number',
@@ -1209,36 +1209,36 @@ function setup$8(backend) {
     ]);
 }
 function conv2d(args) {
-    const { inputs, attrs, backend } = args;
-    const { x, filter } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const filterId = backend.dataIdMap.get(filter.dataId).id;
-    const { strides, dilations, pad, dimRoundingMode, dataFormat } = attrs;
-    const $dataFormat = tfjsCore.backend_util.convertConv2DDataFormat(dataFormat);
-    const convInfo = tfjsCore.backend_util.computeConv2DInfo(x.shape, filter.shape, strides, dilations, pad, dimRoundingMode, false, $dataFormat);
-    const filterHeight = convInfo.filterHeight;
-    const filterWidth = convInfo.filterWidth;
-    const padTop = convInfo.padInfo.top;
-    const padRight = convInfo.padInfo.right;
-    const padBottom = convInfo.padInfo.bottom;
-    const padLeft = convInfo.padInfo.left;
-    const dilationHeight = convInfo.dilationHeight;
-    const dilationWidth = convInfo.dilationWidth;
-    const strideHeight = convInfo.strideHeight;
-    const strideWidth = convInfo.strideWidth;
-    const inputChannels = convInfo.inChannels;
-    const outputChannels = convInfo.outChannels;
-    const isSamePad = convInfo.padInfo.type === 'SAME' ? 1 : 0;
+    var inputs = args.inputs, attrs = args.attrs, backend = args.backend;
+    var x = inputs.x, filter = inputs.filter;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var filterId = backend.dataIdMap.get(filter.dataId).id;
+    var strides = attrs.strides, dilations = attrs.dilations, pad = attrs.pad, dimRoundingMode = attrs.dimRoundingMode, dataFormat = attrs.dataFormat;
+    var $dataFormat = tfjsCore.backend_util.convertConv2DDataFormat(dataFormat);
+    var convInfo = tfjsCore.backend_util.computeConv2DInfo(x.shape, filter.shape, strides, dilations, pad, dimRoundingMode, false, $dataFormat);
+    var filterHeight = convInfo.filterHeight;
+    var filterWidth = convInfo.filterWidth;
+    var padTop = convInfo.padInfo.top;
+    var padRight = convInfo.padInfo.right;
+    var padBottom = convInfo.padInfo.bottom;
+    var padLeft = convInfo.padInfo.left;
+    var dilationHeight = convInfo.dilationHeight;
+    var dilationWidth = convInfo.dilationWidth;
+    var strideHeight = convInfo.strideHeight;
+    var strideWidth = convInfo.strideWidth;
+    var inputChannels = convInfo.inChannels;
+    var outputChannels = convInfo.outChannels;
+    var isSamePad = convInfo.padInfo.type === 'SAME' ? 1 : 0;
     if (convInfo.dataFormat !== 'channelsLast') {
-        throw new Error(`wasm backend Conv2D does not support dataFormat:'` +
-            `${convInfo.dataFormat}'. Please use 'channelsLast'.`);
+        throw new Error("wasm backend Conv2D does not support dataFormat:'" +
+            (convInfo.dataFormat + "'. Please use 'channelsLast'."));
     }
-    const out = backend.makeOutput(convInfo.outShape, 'float32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var out = backend.makeOutput(convInfo.outShape, 'float32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmConv2d(xId, x.shape[0], x.shape[1], x.shape[2], filterId, filterHeight, filterWidth, padTop, padRight, padBottom, padLeft, isSamePad, dilationHeight, dilationWidth, strideHeight, strideWidth, inputChannels, outputChannels, outId);
     return out;
 }
-const conv2DConfig = {
+var conv2DConfig = {
     kernelName: tfjsCore.Conv2D,
     backendName: 'wasm',
     setupFunc: setup$8,
@@ -1261,7 +1261,7 @@ const conv2DConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmConv2DBackpropInput;
+var wasmConv2DBackpropInput;
 function setup$9(backend) {
     wasmConv2DBackpropInput = backend.wasm.cwrap(tfjsCore.Conv2DBackpropInput, null, [
         'number',
@@ -1294,35 +1294,35 @@ function setup$9(backend) {
     ]);
 }
 function conv2DBackpropInput(args) {
-    const { backend, inputs, attrs } = args;
-    const { dy, filter } = inputs;
-    const { strides, pad, dataFormat, dimRoundingMode, inputShape } = attrs;
-    const dilations = 1;
-    const $dataFormat = tfjsCore.backend_util.convertConv2DDataFormat(dataFormat);
-    const convInfo = tfjsCore.backend_util.computeConv2DInfo(inputShape, filter.shape, strides, dilations, pad, dimRoundingMode, false /* depthwise */, $dataFormat);
-    const { batchSize, filterHeight, filterWidth, inChannels, inHeight, inWidth, outChannels, outHeight, outWidth, strideHeight, strideWidth } = convInfo;
-    const topPad = filterHeight - 1 - convInfo.padInfo.top;
-    const leftPad = filterWidth - 1 - convInfo.padInfo.left;
-    const isChannelsLast = convInfo.dataFormat === 'channelsLast';
-    const dxStrides = tfjsCore.util.computeStrides(convInfo.inShape);
-    const dyStrides = tfjsCore.util.computeStrides(dy.shape);
-    const [fltS0, fltS1, fltS2] = tfjsCore.util.computeStrides(filter.shape);
-    const xBatchStride = dxStrides[0];
-    const xRowStride = isChannelsLast ? dxStrides[1] : dxStrides[2];
-    const xColStride = isChannelsLast ? dxStrides[2] : 1;
-    const xChannelStride = isChannelsLast ? 1 : dxStrides[1];
-    const yBatchStride = dyStrides[0];
-    const yRowStride = isChannelsLast ? dyStrides[1] : dyStrides[2];
-    const yColStride = isChannelsLast ? dyStrides[2] : 1;
-    const yChannelStride = isChannelsLast ? 1 : dyStrides[1];
-    const out = backend.makeOutput(convInfo.inShape, 'float32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const dyId = backend.dataIdMap.get(dy.dataId).id;
-    const filterId = backend.dataIdMap.get(filter.dataId).id;
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var dy = inputs.dy, filter = inputs.filter;
+    var strides = attrs.strides, pad = attrs.pad, dataFormat = attrs.dataFormat, dimRoundingMode = attrs.dimRoundingMode, inputShape = attrs.inputShape;
+    var dilations = 1;
+    var $dataFormat = tfjsCore.backend_util.convertConv2DDataFormat(dataFormat);
+    var convInfo = tfjsCore.backend_util.computeConv2DInfo(inputShape, filter.shape, strides, dilations, pad, dimRoundingMode, false /* depthwise */, $dataFormat);
+    var batchSize = convInfo.batchSize, filterHeight = convInfo.filterHeight, filterWidth = convInfo.filterWidth, inChannels = convInfo.inChannels, inHeight = convInfo.inHeight, inWidth = convInfo.inWidth, outChannels = convInfo.outChannels, outHeight = convInfo.outHeight, outWidth = convInfo.outWidth, strideHeight = convInfo.strideHeight, strideWidth = convInfo.strideWidth;
+    var topPad = filterHeight - 1 - convInfo.padInfo.top;
+    var leftPad = filterWidth - 1 - convInfo.padInfo.left;
+    var isChannelsLast = convInfo.dataFormat === 'channelsLast';
+    var dxStrides = tfjsCore.util.computeStrides(convInfo.inShape);
+    var dyStrides = tfjsCore.util.computeStrides(dy.shape);
+    var _a = tfjsCore.util.computeStrides(filter.shape), fltS0 = _a[0], fltS1 = _a[1], fltS2 = _a[2];
+    var xBatchStride = dxStrides[0];
+    var xRowStride = isChannelsLast ? dxStrides[1] : dxStrides[2];
+    var xColStride = isChannelsLast ? dxStrides[2] : 1;
+    var xChannelStride = isChannelsLast ? 1 : dxStrides[1];
+    var yBatchStride = dyStrides[0];
+    var yRowStride = isChannelsLast ? dyStrides[1] : dyStrides[2];
+    var yColStride = isChannelsLast ? dyStrides[2] : 1;
+    var yChannelStride = isChannelsLast ? 1 : dyStrides[1];
+    var out = backend.makeOutput(convInfo.inShape, 'float32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var dyId = backend.dataIdMap.get(dy.dataId).id;
+    var filterId = backend.dataIdMap.get(filter.dataId).id;
     wasmConv2DBackpropInput(dyId, filterId, batchSize, filterHeight, filterWidth, inHeight, inWidth, inChannels, outHeight, outWidth, outChannels, strideHeight, strideWidth, topPad, leftPad, fltS0, fltS1, fltS2, xBatchStride, xRowStride, xColStride, xChannelStride, yBatchStride, yRowStride, yColStride, yChannelStride, outId);
     return out;
 }
-const conv2DBackpropInputConfig = {
+var conv2DBackpropInputConfig = {
     kernelName: tfjsCore.Conv2DBackpropInput,
     backendName: 'wasm',
     setupFunc: setup$9,
@@ -1345,7 +1345,7 @@ const conv2DBackpropInputConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const cosConfig = createUnaryKernelConfig(tfjsCore.Cos);
+var cosConfig = createUnaryKernelConfig(tfjsCore.Cos);
 
 /**
  * @license
@@ -1369,7 +1369,7 @@ var InterpolationMethod;
     InterpolationMethod[InterpolationMethod["bilinear"] = 0] = "bilinear";
     InterpolationMethod[InterpolationMethod["nearest"] = 1] = "nearest";
 })(InterpolationMethod || (InterpolationMethod = {}));
-let wasmCropAndResize;
+var wasmCropAndResize;
 function setup$a(backend) {
     wasmCropAndResize = backend.wasm.cwrap(tfjsCore.CropAndResize, null /*void*/, [
         'number',
@@ -1385,31 +1385,31 @@ function setup$a(backend) {
     ]);
 }
 function cropAndResize(args) {
-    const { backend, inputs, attrs } = args;
-    const { method, extrapolationValue, cropSize } = attrs;
-    const { image, boxes, boxInd } = inputs;
-    const numBoxes = boxes.shape[0];
-    const [cropHeight, cropWidth] = cropSize;
-    const outShape = [numBoxes, cropHeight, cropWidth, image.shape[3]];
-    let imagesData = backend.dataIdMap.get(image.dataId);
-    let castedData;
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var method = attrs.method, extrapolationValue = attrs.extrapolationValue, cropSize = attrs.cropSize;
+    var image = inputs.image, boxes = inputs.boxes, boxInd = inputs.boxInd;
+    var numBoxes = boxes.shape[0];
+    var _a = cropSize, cropHeight = _a[0], cropWidth = _a[1];
+    var outShape = [numBoxes, cropHeight, cropWidth, image.shape[3]];
+    var imagesData = backend.dataIdMap.get(image.dataId);
+    var castedData;
     if (image.dtype !== 'float32') {
-        castedData = cast({ backend, inputs: { x: image }, attrs: { dtype: 'float32' } });
+        castedData = cast({ backend: backend, inputs: { x: image }, attrs: { dtype: 'float32' } });
         imagesData = backend.dataIdMap.get(castedData.dataId);
     }
-    const imagesId = imagesData.id;
-    const boxesId = backend.dataIdMap.get(boxes.dataId).id;
-    const boxIndId = backend.dataIdMap.get(boxInd.dataId).id;
-    const out = backend.makeOutput(outShape, 'float32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const imagesShapeBytes = new Uint8Array(new Int32Array(image.shape).buffer);
+    var imagesId = imagesData.id;
+    var boxesId = backend.dataIdMap.get(boxes.dataId).id;
+    var boxIndId = backend.dataIdMap.get(boxInd.dataId).id;
+    var out = backend.makeOutput(outShape, 'float32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var imagesShapeBytes = new Uint8Array(new Int32Array(image.shape).buffer);
     wasmCropAndResize(imagesId, boxesId, boxIndId, numBoxes, imagesShapeBytes, cropHeight, cropWidth, InterpolationMethod[method], extrapolationValue, outId);
     if (castedData != null) {
         backend.disposeData(castedData.dataId);
     }
     return out;
 }
-const cropAndResizeConfig = {
+var cropAndResizeConfig = {
     kernelName: tfjsCore.CropAndResize,
     backendName: 'wasm',
     setupFunc: setup$a,
@@ -1432,7 +1432,7 @@ const cropAndResizeConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmCumsum;
+var wasmCumsum;
 function setup$b(backend) {
     wasmCumsum = backend.wasm.cwrap(tfjsCore.Cumsum, null /* void */, [
         'number',
@@ -1444,35 +1444,35 @@ function setup$b(backend) {
     ]);
 }
 function cumsum(args) {
-    const { inputs, backend, attrs } = args;
-    const { x } = inputs;
-    const { axis, exclusive, reverse } = attrs;
-    const xRank = x.shape.length;
-    tfjsCore.util.assert(x.dtype === 'float32' || x.dtype === 'int32', () => `cumsum does not support ${x.dtype} tensors in the WASM backend`);
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var x = inputs.x;
+    var axis = attrs.axis, exclusive = attrs.exclusive, reverse = attrs.reverse;
+    var xRank = x.shape.length;
+    tfjsCore.util.assert(x.dtype === 'float32' || x.dtype === 'int32', function () { return "cumsum does not support " + x.dtype + " tensors in the WASM backend"; });
     // permute required axis to inner most axis
-    const permutation = tfjsCore.backend_util.getAxesPermutation([axis], xRank);
-    let permutedX = x;
+    var permutation = tfjsCore.backend_util.getAxesPermutation([axis], xRank);
+    var permutedX = x;
     if (permutation !== null) {
-        permutedX = transpose({ inputs: { x }, attrs: { perm: permutation }, backend });
+        permutedX = transpose({ inputs: { x: x }, attrs: { perm: permutation }, backend: backend });
     }
-    const permutedAxis = tfjsCore.backend_util.getInnerMostAxes(1, xRank)[0];
+    var permutedAxis = tfjsCore.backend_util.getInnerMostAxes(1, xRank)[0];
     tfjsCore.backend_util.assertAxesAreInnerMostDims('cumsum', [permutedAxis], xRank);
-    const permutedOut = backend.makeOutput(permutedX.shape, permutedX.dtype);
-    const finalDim = permutedX.shape[permutedAxis];
-    const permutedXId = backend.dataIdMap.get(permutedX.dataId).id;
-    const permutedOutId = backend.dataIdMap.get(permutedOut.dataId).id;
+    var permutedOut = backend.makeOutput(permutedX.shape, permutedX.dtype);
+    var finalDim = permutedX.shape[permutedAxis];
+    var permutedXId = backend.dataIdMap.get(permutedX.dataId).id;
+    var permutedOutId = backend.dataIdMap.get(permutedOut.dataId).id;
     wasmCumsum(permutedXId, exclusive ? 1 : 0, reverse ? 1 : 0, finalDim, permutedOutId, CppDType[x.dtype]);
     // transpose data back if permuted
-    let out = permutedOut;
+    var out = permutedOut;
     if (permutation !== null) {
-        const undoPermutation = tfjsCore.backend_util.getUndoAxesPermutation(permutation);
-        out = transpose({ inputs: { x: permutedOut }, attrs: { perm: undoPermutation }, backend });
+        var undoPermutation = tfjsCore.backend_util.getUndoAxesPermutation(permutation);
+        out = transpose({ inputs: { x: permutedOut }, attrs: { perm: undoPermutation }, backend: backend });
         backend.disposeData(permutedX.dataId);
         backend.disposeData(permutedOut.dataId);
     }
     return out;
 }
-const cumsumConfig = {
+var cumsumConfig = {
     kernelName: tfjsCore.Cumsum,
     backendName: 'wasm',
     setupFunc: setup$b,
@@ -1495,7 +1495,7 @@ const cumsumConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmDepthToSpace;
+var wasmDepthToSpace;
 function setup$c(backend) {
     wasmDepthToSpace = backend.wasm.cwrap(tfjsCore.DepthToSpace, null /*void*/, [
         'number',
@@ -1510,32 +1510,32 @@ function setup$c(backend) {
     ]);
 }
 function depthToSpace(args) {
-    const { backend, inputs, attrs } = args;
-    const { x } = inputs;
-    const { blockSize, dataFormat } = attrs;
-    tfjsCore.util.assert(blockSize > 1, () => `blockSize should be > 1 for depthToSpace, but was: ${blockSize}`);
-    const batchSize = x.shape[0];
-    const inputHeight = (dataFormat === 'NHWC') ? x.shape[1] : x.shape[2];
-    const inputWidth = (dataFormat === 'NHWC') ? x.shape[2] : x.shape[3];
-    const inputDepth = (dataFormat === 'NHWC') ? x.shape[3] : x.shape[1];
-    const outputHeight = inputHeight * blockSize;
-    const outputWidth = inputWidth * blockSize;
-    const outputDepth = inputDepth / (blockSize * blockSize);
-    const outputShape = (dataFormat === 'NHWC') ?
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var x = inputs.x;
+    var blockSize = attrs.blockSize, dataFormat = attrs.dataFormat;
+    tfjsCore.util.assert(blockSize > 1, function () { return "blockSize should be > 1 for depthToSpace, but was: " + blockSize; });
+    var batchSize = x.shape[0];
+    var inputHeight = (dataFormat === 'NHWC') ? x.shape[1] : x.shape[2];
+    var inputWidth = (dataFormat === 'NHWC') ? x.shape[2] : x.shape[3];
+    var inputDepth = (dataFormat === 'NHWC') ? x.shape[3] : x.shape[1];
+    var outputHeight = inputHeight * blockSize;
+    var outputWidth = inputWidth * blockSize;
+    var outputDepth = inputDepth / (blockSize * blockSize);
+    var outputShape = (dataFormat === 'NHWC') ?
         [batchSize, outputHeight, outputWidth, outputDepth] :
         [batchSize, outputDepth, outputHeight, outputWidth];
-    const out = backend.makeOutput(outputShape, 'float32');
-    const xData = backend.dataIdMap.get(x.dataId);
-    const xId = xData.id;
-    const xStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(x.shape)).buffer);
-    const outputShapeBytes = new Uint8Array(new Int32Array(outputShape).buffer);
-    const outStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(outputShape)).buffer);
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const channelsLast = dataFormat === 'NHWC' ? 1 : 0;
+    var out = backend.makeOutput(outputShape, 'float32');
+    var xData = backend.dataIdMap.get(x.dataId);
+    var xId = xData.id;
+    var xStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(x.shape)).buffer);
+    var outputShapeBytes = new Uint8Array(new Int32Array(outputShape).buffer);
+    var outStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(outputShape)).buffer);
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var channelsLast = dataFormat === 'NHWC' ? 1 : 0;
     wasmDepthToSpace(xId, blockSize, channelsLast, xStridesBytes, x.shape.length - 1, outputShapeBytes, outStridesBytes, outputShape.length, outId);
     return out;
 }
-const depthToSpaceConfig = {
+var depthToSpaceConfig = {
     kernelName: tfjsCore.DepthToSpace,
     backendName: 'wasm',
     setupFunc: setup$c,
@@ -1558,7 +1558,7 @@ const depthToSpaceConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmDepthwiseConv2d;
+var wasmDepthwiseConv2d;
 function setup$d(backend) {
     wasmDepthwiseConv2d =
         backend.wasm.cwrap(tfjsCore.DepthwiseConv2dNative, null /* void */, [
@@ -1584,36 +1584,36 @@ function setup$d(backend) {
         ]);
 }
 function depthwiseConv2d(args) {
-    const { inputs, attrs, backend } = args;
-    const { x, filter } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const filterId = backend.dataIdMap.get(filter.dataId).id;
-    const { strides, dilations, pad, dimRoundingMode } = attrs;
-    const $dilations = dilations == null ? [1, 1] : dilations;
-    const convInfo = tfjsCore.backend_util.computeConv2DInfo(x.shape, filter.shape, strides, $dilations, pad, dimRoundingMode, true /* depthwise */);
-    const filterHeight = convInfo.filterHeight;
-    const filterWidth = convInfo.filterWidth;
-    const padTop = convInfo.padInfo.top;
-    const padRight = convInfo.padInfo.right;
-    const padBottom = convInfo.padInfo.bottom;
-    const padLeft = convInfo.padInfo.left;
-    const dilationHeight = convInfo.dilationHeight;
-    const dilationWidth = convInfo.dilationWidth;
-    const strideHeight = convInfo.strideHeight;
-    const strideWidth = convInfo.strideWidth;
-    const inputChannels = convInfo.inChannels;
-    const outputChannels = convInfo.outChannels;
-    const isSamePad = convInfo.padInfo.type === 'SAME' ? 1 : 0;
+    var inputs = args.inputs, attrs = args.attrs, backend = args.backend;
+    var x = inputs.x, filter = inputs.filter;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var filterId = backend.dataIdMap.get(filter.dataId).id;
+    var strides = attrs.strides, dilations = attrs.dilations, pad = attrs.pad, dimRoundingMode = attrs.dimRoundingMode;
+    var $dilations = dilations == null ? [1, 1] : dilations;
+    var convInfo = tfjsCore.backend_util.computeConv2DInfo(x.shape, filter.shape, strides, $dilations, pad, dimRoundingMode, true /* depthwise */);
+    var filterHeight = convInfo.filterHeight;
+    var filterWidth = convInfo.filterWidth;
+    var padTop = convInfo.padInfo.top;
+    var padRight = convInfo.padInfo.right;
+    var padBottom = convInfo.padInfo.bottom;
+    var padLeft = convInfo.padInfo.left;
+    var dilationHeight = convInfo.dilationHeight;
+    var dilationWidth = convInfo.dilationWidth;
+    var strideHeight = convInfo.strideHeight;
+    var strideWidth = convInfo.strideWidth;
+    var inputChannels = convInfo.inChannels;
+    var outputChannels = convInfo.outChannels;
+    var isSamePad = convInfo.padInfo.type === 'SAME' ? 1 : 0;
     if (convInfo.dataFormat !== 'channelsLast') {
-        throw new Error(`wasm backend DepthwiseConv2dNative does not support dataFormat:'` +
-            `${convInfo.dataFormat}'. Please use 'channelsLast'.`);
+        throw new Error("wasm backend DepthwiseConv2dNative does not support dataFormat:'" +
+            (convInfo.dataFormat + "'. Please use 'channelsLast'."));
     }
-    const out = backend.makeOutput(convInfo.outShape, 'float32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var out = backend.makeOutput(convInfo.outShape, 'float32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmDepthwiseConv2d(xId, x.shape[0], x.shape[1], x.shape[2], filterId, filterHeight, filterWidth, padTop, padRight, padBottom, padLeft, isSamePad, dilationHeight, dilationWidth, strideHeight, strideWidth, inputChannels, outputChannels, outId);
     return out;
 }
-const depthwiseConv2dNativeConfig = {
+var depthwiseConv2dNativeConfig = {
     kernelName: tfjsCore.DepthwiseConv2dNative,
     backendName: 'wasm',
     setupFunc: setup$d,
@@ -1636,8 +1636,8 @@ const depthwiseConv2dNativeConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$1 = false;
-const equalConfig = createBinaryKernelConfig(tfjsCore.Equal, supportsFullBroadcast$1, 'bool');
+var supportsFullBroadcast$1 = false;
+var equalConfig = createBinaryKernelConfig(tfjsCore.Equal, supportsFullBroadcast$1, 'bool');
 
 /**
  * @license
@@ -1655,7 +1655,7 @@ const equalConfig = createBinaryKernelConfig(tfjsCore.Equal, supportsFullBroadca
  * limitations under the License.
  * =============================================================================
  */
-const expConfig = createUnaryKernelConfig(tfjsCore.Exp);
+var expConfig = createUnaryKernelConfig(tfjsCore.Exp);
 
 /**
  * @license
@@ -1674,21 +1674,21 @@ const expConfig = createUnaryKernelConfig(tfjsCore.Exp);
  * =============================================================================
  */
 function expandDims(args) {
-    const { inputs, attrs, backend } = args;
-    const { input } = inputs;
-    const { dim } = attrs;
-    const inputRank = input.shape.length;
-    const newShape = input.shape.slice();
-    let $dim = dim;
+    var inputs = args.inputs, attrs = args.attrs, backend = args.backend;
+    var input = inputs.input;
+    var dim = attrs.dim;
+    var inputRank = input.shape.length;
+    var newShape = input.shape.slice();
+    var $dim = dim;
     if (dim < 0) {
         // Negative value is counted from the tail of rank.
-        tfjsCore.util.assert(-(inputRank + 1) <= dim, () => `Axis must be in the interval [${-(inputRank + 1)}, ${inputRank}]`);
+        tfjsCore.util.assert(-(inputRank + 1) <= dim, function () { return "Axis must be in the interval [" + -(inputRank + 1) + ", " + inputRank + "]"; });
         $dim = inputRank + dim + 1;
     }
     newShape.splice($dim, 0, 1);
-    return reshape({ inputs: { x: input }, backend, attrs: { shape: newShape } });
+    return reshape({ inputs: { x: input }, backend: backend, attrs: { shape: newShape } });
 }
-const expandDimsConfig = {
+var expandDimsConfig = {
     kernelName: tfjsCore.ExpandDims,
     backendName: 'wasm',
     kernelFunc: expandDims,
@@ -1711,13 +1711,13 @@ const expandDimsConfig = {
  * =============================================================================
  */
 function fill(args) {
-    const { attrs: { shape, value, dtype }, backend } = args;
-    const out = backend.makeOutput(shape, dtype);
-    const outVals = backend.typedArrayFromHeap(out);
+    var _a = args.attrs, shape = _a.shape, value = _a.value, dtype = _a.dtype, backend = args.backend;
+    var out = backend.makeOutput(shape, dtype);
+    var outVals = backend.typedArrayFromHeap(out);
     outVals.fill(value);
     return out;
 }
-const fillConfig = {
+var fillConfig = {
     kernelName: tfjsCore.Fill,
     backendName: 'wasm',
     kernelFunc: fill,
@@ -1739,7 +1739,7 @@ const fillConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmFlipLeftRight;
+var wasmFlipLeftRight;
 function setup$e(backend) {
     wasmFlipLeftRight = backend.wasm.cwrap(tfjsCore.FlipLeftRight, null /* void */, [
         'number',
@@ -1751,16 +1751,16 @@ function setup$e(backend) {
     ]);
 }
 function flipLeftRight(args) {
-    const { inputs, backend } = args;
-    const { image } = inputs;
-    const out = backend.makeOutput(image.shape, image.dtype);
-    const imageId = backend.dataIdMap.get(image.dataId).id;
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const [batch, imageHeight, imageWidth, numChannels] = image.shape;
+    var inputs = args.inputs, backend = args.backend;
+    var image = inputs.image;
+    var out = backend.makeOutput(image.shape, image.dtype);
+    var imageId = backend.dataIdMap.get(image.dataId).id;
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var _a = image.shape, batch = _a[0], imageHeight = _a[1], imageWidth = _a[2], numChannels = _a[3];
     wasmFlipLeftRight(imageId, batch, imageHeight, imageWidth, numChannels, outId);
     return out;
 }
-const flipLeftRightConfig = {
+var flipLeftRightConfig = {
     kernelName: tfjsCore.FlipLeftRight,
     backendName: 'wasm',
     kernelFunc: flipLeftRight,
@@ -1783,7 +1783,7 @@ const flipLeftRightConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const floorConfig = createUnaryKernelConfig(tfjsCore.Floor);
+var floorConfig = createUnaryKernelConfig(tfjsCore.Floor);
 
 /**
  * @license
@@ -1801,8 +1801,8 @@ const floorConfig = createUnaryKernelConfig(tfjsCore.Floor);
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$2 = false;
-const floorDivConfig = createBinaryKernelConfig(tfjsCore.FloorDiv, supportsFullBroadcast$2);
+var supportsFullBroadcast$2 = false;
+var floorDivConfig = createBinaryKernelConfig(tfjsCore.FloorDiv, supportsFullBroadcast$2);
 
 /**
  * @license
@@ -1820,29 +1820,29 @@ const floorDivConfig = createBinaryKernelConfig(tfjsCore.FloorDiv, supportsFullB
  * limitations under the License.
  * =============================================================================
  */
-let wasmBatchNorm;
+var wasmBatchNorm;
 function setup$f(backend) {
     wasmBatchNorm = backend.wasm.cwrap(tfjsCore.FusedBatchNorm, null /* void */, ['number', 'number', 'number', 'number', 'number', 'number', 'number']);
 }
 function fusedBatchNorm(args) {
-    const { backend, inputs, attrs } = args;
-    const { varianceEpsilon } = attrs;
-    const { x, mean, variance, offset, scale } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const meanId = backend.dataIdMap.get(mean.dataId).id;
-    const varianceId = backend.dataIdMap.get(variance.dataId).id;
-    const offsetId = offset != null ? backend.dataIdMap.get(offset.dataId).id : 0;
-    const scaleId = scale != null ? backend.dataIdMap.get(scale.dataId).id : 0;
-    const out = backend.makeOutput(x.shape, x.dtype);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var varianceEpsilon = attrs.varianceEpsilon;
+    var x = inputs.x, mean = inputs.mean, variance = inputs.variance, offset = inputs.offset, scale = inputs.scale;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var meanId = backend.dataIdMap.get(mean.dataId).id;
+    var varianceId = backend.dataIdMap.get(variance.dataId).id;
+    var offsetId = offset != null ? backend.dataIdMap.get(offset.dataId).id : 0;
+    var scaleId = scale != null ? backend.dataIdMap.get(scale.dataId).id : 0;
+    var out = backend.makeOutput(x.shape, x.dtype);
     // Short-circuit zero-sized tensors.
     if (tfjsCore.util.sizeFromShape(x.shape) === 0) {
         return out;
     }
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmBatchNorm(xId, meanId, varianceId, offsetId, scaleId, varianceEpsilon, outId);
     return out;
 }
-const fusedBatchNormConfig = {
+var fusedBatchNormConfig = {
     kernelName: tfjsCore.FusedBatchNorm,
     backendName: 'wasm',
     setupFunc: setup$f,
@@ -1865,7 +1865,7 @@ const fusedBatchNormConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmFusedConv2d;
+var wasmFusedConv2d;
 function setup$g(backend) {
     wasmFusedConv2d = backend.wasm.cwrap(tfjsCore.FusedConv2D, null /* void */, [
         'number',
@@ -1894,59 +1894,59 @@ function setup$g(backend) {
     ]);
 }
 function fusedConv2d(args) {
-    const { inputs, attrs, backend } = args;
-    const { x, filter, bias, preluActivationWeights } = inputs;
-    const { strides, pad, dilations, dataFormat, dimRoundingMode, activation, leakyreluAlpha } = attrs;
-    const convInfo = tfjsCore.backend_util.computeConv2DInfo(x.shape, filter.shape, strides, dilations, pad, dimRoundingMode);
-    const fusedActivation = FusableActivation[activation];
+    var inputs = args.inputs, attrs = args.attrs, backend = args.backend;
+    var x = inputs.x, filter = inputs.filter, bias = inputs.bias, preluActivationWeights = inputs.preluActivationWeights;
+    var strides = attrs.strides, pad = attrs.pad, dilations = attrs.dilations, dataFormat = attrs.dataFormat, dimRoundingMode = attrs.dimRoundingMode, activation = attrs.activation, leakyreluAlpha = attrs.leakyreluAlpha;
+    var convInfo = tfjsCore.backend_util.computeConv2DInfo(x.shape, filter.shape, strides, dilations, pad, dimRoundingMode);
+    var fusedActivation = FusableActivation[activation];
     if (fusedActivation == null) {
-        throw new Error(`${activation} activation not yet supported for FusedConv2D ` +
-            `in the wasm backend.`);
+        throw new Error(activation + " activation not yet supported for FusedConv2D " +
+            "in the wasm backend.");
     }
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const filterId = backend.dataIdMap.get(filter.dataId).id;
-    const outputChannels = convInfo.outChannels;
-    let biasId = 0;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var filterId = backend.dataIdMap.get(filter.dataId).id;
+    var outputChannels = convInfo.outChannels;
+    var biasId = 0;
     if (bias != null) {
-        const biasData = backend.dataIdMap.get(bias.dataId);
+        var biasData = backend.dataIdMap.get(bias.dataId);
         if (biasData.shape.length !== 1) {
-            throw new Error(`FusedConv2D only supports rank-1 bias but got ` +
-                `rank ${biasData.shape.length}.`);
+            throw new Error("FusedConv2D only supports rank-1 bias but got " +
+                ("rank " + biasData.shape.length + "."));
         }
         if (biasData.shape[0] !== outputChannels) {
-            throw new Error(`FusedConv2D bias shape (${biasData.shape}) does not ` +
-                `match the number of output channels (${outputChannels})`);
+            throw new Error("FusedConv2D bias shape (" + biasData.shape + ") does not " +
+                ("match the number of output channels (" + outputChannels + ")"));
         }
         biasId = biasData.id;
     }
-    const filterHeight = convInfo.filterHeight;
-    const filterWidth = convInfo.filterWidth;
-    const padTop = convInfo.padInfo.top;
-    const padRight = convInfo.padInfo.right;
-    const padBottom = convInfo.padInfo.bottom;
-    const padLeft = convInfo.padInfo.left;
-    const dilationHeight = convInfo.dilationHeight;
-    const dilationWidth = convInfo.dilationWidth;
-    const strideHeight = convInfo.strideHeight;
-    const strideWidth = convInfo.strideWidth;
-    const inputChannels = convInfo.inChannels;
-    const isSamePad = convInfo.padInfo.type === 'SAME' ? 1 : 0;
-    const batchSize = convInfo.batchSize;
-    const inHeight = convInfo.inHeight;
-    const inWidth = convInfo.inWidth;
+    var filterHeight = convInfo.filterHeight;
+    var filterWidth = convInfo.filterWidth;
+    var padTop = convInfo.padInfo.top;
+    var padRight = convInfo.padInfo.right;
+    var padBottom = convInfo.padInfo.bottom;
+    var padLeft = convInfo.padInfo.left;
+    var dilationHeight = convInfo.dilationHeight;
+    var dilationWidth = convInfo.dilationWidth;
+    var strideHeight = convInfo.strideHeight;
+    var strideWidth = convInfo.strideWidth;
+    var inputChannels = convInfo.inChannels;
+    var isSamePad = convInfo.padInfo.type === 'SAME' ? 1 : 0;
+    var batchSize = convInfo.batchSize;
+    var inHeight = convInfo.inHeight;
+    var inWidth = convInfo.inWidth;
     if (dataFormat !== 'NHWC') {
-        throw new Error(`wasm backend FusedConv2D does not support dataFormat:'` +
-            `${dataFormat}'. Please use 'NHWC'.`);
+        throw new Error("wasm backend FusedConv2D does not support dataFormat:'" +
+            (dataFormat + "'. Please use 'NHWC'."));
     }
-    const out = backend.makeOutput(convInfo.outShape, 'float32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const preluActivationWeightsId = preluActivationWeights == null ?
+    var out = backend.makeOutput(convInfo.outShape, 'float32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var preluActivationWeightsId = preluActivationWeights == null ?
         0 :
         backend.dataIdMap.get(preluActivationWeights.dataId).id;
     wasmFusedConv2d(xId, batchSize, inHeight, inWidth, filterId, filterHeight, filterWidth, biasId, padTop, padRight, padBottom, padLeft, isSamePad, dilationHeight, dilationWidth, strideHeight, strideWidth, inputChannels, outputChannels, fusedActivation, preluActivationWeightsId, leakyreluAlpha || 0, outId);
     return out;
 }
-const fusedConv2DConfig = {
+var fusedConv2DConfig = {
     kernelName: tfjsCore.FusedConv2D,
     backendName: 'wasm',
     setupFunc: setup$g,
@@ -1969,7 +1969,7 @@ const fusedConv2DConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmFusedDepthwiseConv2d;
+var wasmFusedDepthwiseConv2d;
 function setup$h(backend) {
     wasmFusedDepthwiseConv2d =
         backend.wasm.cwrap(tfjsCore.FusedDepthwiseConv2D, null /* void */, [
@@ -1999,59 +1999,59 @@ function setup$h(backend) {
         ]);
 }
 function fusedDepthwiseConv2d(args) {
-    const { inputs, attrs, backend } = args;
-    const { x, filter, bias, preluActivationWeights } = inputs;
-    const { strides, pad, dilations, dataFormat, dimRoundingMode, activation, leakyreluAlpha } = attrs;
-    const convInfo = tfjsCore.backend_util.computeConv2DInfo(x.shape, filter.shape, strides, dilations, pad, dimRoundingMode, true /* depthwise */);
-    const fusedActivation = FusableActivation[activation];
+    var inputs = args.inputs, attrs = args.attrs, backend = args.backend;
+    var x = inputs.x, filter = inputs.filter, bias = inputs.bias, preluActivationWeights = inputs.preluActivationWeights;
+    var strides = attrs.strides, pad = attrs.pad, dilations = attrs.dilations, dataFormat = attrs.dataFormat, dimRoundingMode = attrs.dimRoundingMode, activation = attrs.activation, leakyreluAlpha = attrs.leakyreluAlpha;
+    var convInfo = tfjsCore.backend_util.computeConv2DInfo(x.shape, filter.shape, strides, dilations, pad, dimRoundingMode, true /* depthwise */);
+    var fusedActivation = FusableActivation[activation];
     if (fusedActivation == null) {
-        throw new Error(`${activation} activation not yet supported for FusedDepthwiseConv2D ` +
-            `in the wasm backend.`);
+        throw new Error(activation + " activation not yet supported for FusedDepthwiseConv2D " +
+            "in the wasm backend.");
     }
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const filterId = backend.dataIdMap.get(filter.dataId).id;
-    const outputChannels = convInfo.outChannels;
-    let biasId = 0;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var filterId = backend.dataIdMap.get(filter.dataId).id;
+    var outputChannels = convInfo.outChannels;
+    var biasId = 0;
     if (bias != null) {
-        const biasData = backend.dataIdMap.get(bias.dataId);
+        var biasData = backend.dataIdMap.get(bias.dataId);
         if (biasData.shape.length !== 1) {
-            throw new Error(`FusedDepthwiseConv2D only supports rank-1 bias but got ` +
-                `rank ${biasData.shape.length}.`);
+            throw new Error("FusedDepthwiseConv2D only supports rank-1 bias but got " +
+                ("rank " + biasData.shape.length + "."));
         }
         if (biasData.shape[0] !== outputChannels) {
-            throw new Error(`FusedDepthwiseConv2D bias shape (${biasData.shape}) does not ` +
-                `match the number of output channels (${outputChannels})`);
+            throw new Error("FusedDepthwiseConv2D bias shape (" + biasData.shape + ") does not " +
+                ("match the number of output channels (" + outputChannels + ")"));
         }
         biasId = biasData.id;
     }
-    const filterHeight = convInfo.filterHeight;
-    const filterWidth = convInfo.filterWidth;
-    const padTop = convInfo.padInfo.top;
-    const padRight = convInfo.padInfo.right;
-    const padBottom = convInfo.padInfo.bottom;
-    const padLeft = convInfo.padInfo.left;
-    const dilationHeight = convInfo.dilationHeight;
-    const dilationWidth = convInfo.dilationWidth;
-    const strideHeight = convInfo.strideHeight;
-    const strideWidth = convInfo.strideWidth;
-    const inputChannels = convInfo.inChannels;
-    const isSamePad = convInfo.padInfo.type === 'SAME' ? 1 : 0;
-    const batchSize = convInfo.batchSize;
-    const inHeight = convInfo.inHeight;
-    const inWidth = convInfo.inWidth;
+    var filterHeight = convInfo.filterHeight;
+    var filterWidth = convInfo.filterWidth;
+    var padTop = convInfo.padInfo.top;
+    var padRight = convInfo.padInfo.right;
+    var padBottom = convInfo.padInfo.bottom;
+    var padLeft = convInfo.padInfo.left;
+    var dilationHeight = convInfo.dilationHeight;
+    var dilationWidth = convInfo.dilationWidth;
+    var strideHeight = convInfo.strideHeight;
+    var strideWidth = convInfo.strideWidth;
+    var inputChannels = convInfo.inChannels;
+    var isSamePad = convInfo.padInfo.type === 'SAME' ? 1 : 0;
+    var batchSize = convInfo.batchSize;
+    var inHeight = convInfo.inHeight;
+    var inWidth = convInfo.inWidth;
     if (dataFormat !== 'NHWC') {
-        throw new Error(`wasm backend FusedDepthwiseConv2D does not support dataFormat:'` +
-            `${dataFormat}'. Please use 'NHWC'.`);
+        throw new Error("wasm backend FusedDepthwiseConv2D does not support dataFormat:'" +
+            (dataFormat + "'. Please use 'NHWC'."));
     }
-    const out = backend.makeOutput(convInfo.outShape, 'float32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const preluActivationWeightsId = preluActivationWeights == null ?
+    var out = backend.makeOutput(convInfo.outShape, 'float32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var preluActivationWeightsId = preluActivationWeights == null ?
         0 :
         backend.dataIdMap.get(preluActivationWeights.dataId).id;
     wasmFusedDepthwiseConv2d(xId, batchSize, inHeight, inWidth, filterId, filterHeight, filterWidth, biasId, padTop, padRight, padBottom, padLeft, isSamePad, dilationHeight, dilationWidth, strideHeight, strideWidth, inputChannels, outputChannels, fusedActivation, preluActivationWeightsId, leakyreluAlpha || 0, outId);
     return out;
 }
-const fusedDepthwiseConv2DConfig = {
+var fusedDepthwiseConv2DConfig = {
     kernelName: tfjsCore.FusedDepthwiseConv2D,
     backendName: 'wasm',
     setupFunc: setup$h,
@@ -2074,7 +2074,7 @@ const fusedDepthwiseConv2DConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmGatherNd;
+var wasmGatherNd;
 function setup$i(backend) {
     wasmGatherNd = backend.wasm.cwrap(tfjsCore.GatherNd, null /*void*/, [
         'number',
@@ -2088,25 +2088,25 @@ function setup$i(backend) {
     ]);
 }
 function gatherNd(args) {
-    const { backend, inputs } = args;
-    const { params, indices } = inputs;
-    const [resultShape, numSlices, sliceSize, strides] = tfjsCore.gather_util.prepareAndValidate(params, indices);
-    const out = backend.makeOutput(resultShape, params.dtype);
+    var backend = args.backend, inputs = args.inputs;
+    var params = inputs.params, indices = inputs.indices;
+    var _a = tfjsCore.gather_util.prepareAndValidate(params, indices), resultShape = _a[0], numSlices = _a[1], sliceSize = _a[2], strides = _a[3];
+    var out = backend.makeOutput(resultShape, params.dtype);
     if (numSlices === 0) {
         return out;
     }
-    const indicesShape = indices.shape;
-    const sliceRank = indicesShape[indicesShape.length - 1];
-    const xData = backend.dataIdMap.get(params.dataId);
-    const xId = xData.id;
-    const indicesData = backend.dataIdMap.get(indices.dataId);
-    const indicesId = indicesData.id;
-    const stridesBytes = new Uint8Array(new Int32Array(strides).buffer);
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var indicesShape = indices.shape;
+    var sliceRank = indicesShape[indicesShape.length - 1];
+    var xData = backend.dataIdMap.get(params.dataId);
+    var xId = xData.id;
+    var indicesData = backend.dataIdMap.get(indices.dataId);
+    var indicesId = indicesData.id;
+    var stridesBytes = new Uint8Array(new Int32Array(strides).buffer);
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmGatherNd(xId, CppDType[params.dtype], indicesId, numSlices, sliceRank, sliceSize, stridesBytes, outId);
     return out;
 }
-const gatherNdConfig = {
+var gatherNdConfig = {
     kernelName: tfjsCore.GatherNd,
     backendName: 'wasm',
     setupFunc: setup$i,
@@ -2129,7 +2129,7 @@ const gatherNdConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmGather;
+var wasmGather;
 function setup$j(backend) {
     wasmGather = backend.wasm.cwrap('Gather', null /*void*/, [
         'number',
@@ -2143,43 +2143,43 @@ function setup$j(backend) {
     ]);
 }
 function gatherV2(args) {
-    const { backend, inputs, attrs } = args;
-    const { x, indices } = inputs;
-    const { axis, batchDims } = attrs;
-    const parsedAxis = tfjsCore.util.parseAxisParam(axis, x.shape)[0];
-    const shapeInfo = tfjsCore.backend_util.segment_util.collectGatherOpShapeInfo(x, indices, parsedAxis, batchDims);
-    const flattenX = reshape({
-        inputs: { x },
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var x = inputs.x, indices = inputs.indices;
+    var axis = attrs.axis, batchDims = attrs.batchDims;
+    var parsedAxis = tfjsCore.util.parseAxisParam(axis, x.shape)[0];
+    var shapeInfo = tfjsCore.backend_util.segment_util.collectGatherOpShapeInfo(x, indices, parsedAxis, batchDims);
+    var flattenX = reshape({
+        inputs: { x: x },
         attrs: {
             shape: [
                 shapeInfo.batchSize, shapeInfo.outerSize, shapeInfo.dimSize,
                 shapeInfo.sliceSize
             ]
         },
-        backend
+        backend: backend
     });
-    const indicesSize = tfjsCore.util.sizeFromShape(indices.shape);
-    const flattenIndex = reshape({
+    var indicesSize = tfjsCore.util.sizeFromShape(indices.shape);
+    var flattenIndex = reshape({
         inputs: { x: indices },
         attrs: { shape: [shapeInfo.batchSize, indicesSize / shapeInfo.batchSize] },
-        backend
+        backend: backend
     });
-    const flattenOutputShape = [
+    var flattenOutputShape = [
         shapeInfo.batchSize, shapeInfo.outerSize, indicesSize / shapeInfo.batchSize,
         shapeInfo.sliceSize
     ];
-    const out = backend.makeOutput(flattenOutputShape, x.dtype);
+    var out = backend.makeOutput(flattenOutputShape, x.dtype);
     if (tfjsCore.util.sizeFromShape(x.shape) === 0) {
         return out;
     }
-    const stridesSize = flattenX.shape.length - 1;
-    const xData = backend.dataIdMap.get(flattenX.dataId);
-    const xId = xData.id;
-    const indicesData = backend.dataIdMap.get(flattenIndex.dataId);
-    const indicesId = indicesData.id;
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const xStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(flattenX.shape)).buffer);
-    const outStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(flattenOutputShape)).buffer);
+    var stridesSize = flattenX.shape.length - 1;
+    var xData = backend.dataIdMap.get(flattenX.dataId);
+    var xId = xData.id;
+    var indicesData = backend.dataIdMap.get(flattenIndex.dataId);
+    var indicesId = indicesData.id;
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var xStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(flattenX.shape)).buffer);
+    var outStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(flattenOutputShape)).buffer);
     wasmGather(xId, CppDType[x.dtype], xStridesBytes, stridesSize, indicesId, shapeInfo.batchSize, outStridesBytes, outId);
     backend.disposeData(flattenX.dataId);
     backend.disposeData(flattenIndex.dataId);
@@ -2187,7 +2187,7 @@ function gatherV2(args) {
     out.shape = shapeInfo.outputShape;
     return out;
 }
-const gatherV2Config = {
+var gatherV2Config = {
     kernelName: tfjsCore.GatherV2,
     backendName: 'wasm',
     setupFunc: setup$j,
@@ -2210,8 +2210,8 @@ const gatherV2Config = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$3 = false;
-const greaterConfig = createBinaryKernelConfig(tfjsCore.Greater, supportsFullBroadcast$3, 'bool');
+var supportsFullBroadcast$3 = false;
+var greaterConfig = createBinaryKernelConfig(tfjsCore.Greater, supportsFullBroadcast$3, 'bool');
 
 /**
  * @license
@@ -2229,8 +2229,8 @@ const greaterConfig = createBinaryKernelConfig(tfjsCore.Greater, supportsFullBro
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$4 = false;
-const greaterEqualConfig = createBinaryKernelConfig(tfjsCore.GreaterEqual, supportsFullBroadcast$4, 'bool');
+var supportsFullBroadcast$4 = false;
+var greaterEqualConfig = createBinaryKernelConfig(tfjsCore.GreaterEqual, supportsFullBroadcast$4, 'bool');
 
 /**
  * @license
@@ -2248,7 +2248,7 @@ const greaterEqualConfig = createBinaryKernelConfig(tfjsCore.GreaterEqual, suppo
  * limitations under the License.
  * =============================================================================
  */
-let wasmFunc$2;
+var wasmFunc$2;
 function setupFunc$1(backend) {
     wasmFunc$2 = backend.wasm.cwrap(tfjsCore.LeakyRelu, null /* void */, [
         'number',
@@ -2257,16 +2257,16 @@ function setupFunc$1(backend) {
     ]);
 }
 function leakyRelu(args) {
-    const { inputs: { x }, attrs: { alpha }, backend } = args;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const out = backend.makeOutput(x.shape, x.dtype);
+    var x = args.inputs.x, alpha = args.attrs.alpha, backend = args.backend;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var out = backend.makeOutput(x.shape, x.dtype);
     if (tfjsCore.util.sizeFromShape(x.shape) !== 0) {
-        const outId = backend.dataIdMap.get(out.dataId).id;
+        var outId = backend.dataIdMap.get(out.dataId).id;
         wasmFunc$2(xId, alpha, outId);
     }
     return out;
 }
-const leakyReluConfig = {
+var leakyReluConfig = {
     kernelName: tfjsCore.LeakyRelu,
     backendName: 'wasm',
     setupFunc: setupFunc$1,
@@ -2289,8 +2289,8 @@ const leakyReluConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$5 = false;
-const lessConfig = createBinaryKernelConfig(tfjsCore.Less, supportsFullBroadcast$5, 'bool');
+var supportsFullBroadcast$5 = false;
+var lessConfig = createBinaryKernelConfig(tfjsCore.Less, supportsFullBroadcast$5, 'bool');
 
 /**
  * @license
@@ -2308,8 +2308,8 @@ const lessConfig = createBinaryKernelConfig(tfjsCore.Less, supportsFullBroadcast
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$6 = false;
-const lessEqualConfig = createBinaryKernelConfig(tfjsCore.LessEqual, supportsFullBroadcast$6, 'bool');
+var supportsFullBroadcast$6 = false;
+var lessEqualConfig = createBinaryKernelConfig(tfjsCore.LessEqual, supportsFullBroadcast$6, 'bool');
 
 /**
  * @license
@@ -2327,7 +2327,7 @@ const lessEqualConfig = createBinaryKernelConfig(tfjsCore.LessEqual, supportsFul
  * limitations under the License.
  * =============================================================================
  */
-const logConfig = createUnaryKernelConfig(tfjsCore.Log);
+var logConfig = createUnaryKernelConfig(tfjsCore.Log);
 
 /**
  * @license
@@ -2345,8 +2345,8 @@ const logConfig = createUnaryKernelConfig(tfjsCore.Log);
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$7 = false;
-const logicalAndConfig = createBinaryKernelConfig(tfjsCore.LogicalAnd, supportsFullBroadcast$7, 'bool');
+var supportsFullBroadcast$7 = false;
+var logicalAndConfig = createBinaryKernelConfig(tfjsCore.LogicalAnd, supportsFullBroadcast$7, 'bool');
 
 /**
  * @license
@@ -2364,30 +2364,30 @@ const logicalAndConfig = createBinaryKernelConfig(tfjsCore.LogicalAnd, supportsF
  * limitations under the License.
  * =============================================================================
  */
-let wasmMax;
+var wasmMax;
 function setup$k(backend) {
     wasmMax = backend.wasm.cwrap(tfjsCore.Max, null /*void*/, ['number, number, number']);
 }
 function max(args) {
-    const { backend, inputs, attrs } = args;
-    const { reductionIndices: axis, keepDims } = attrs;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    let inputId = xId;
-    let input = x;
-    const { transposed, axes, originalAxes, inputWasTransposed } = permuteAxesAndTranspose(x, axis, backend);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var axis = attrs.reductionIndices, keepDims = attrs.keepDims;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var inputId = xId;
+    var input = x;
+    var _a = permuteAxesAndTranspose(x, axis, backend), transposed = _a.transposed, axes = _a.axes, originalAxes = _a.originalAxes, inputWasTransposed = _a.inputWasTransposed;
     if (inputWasTransposed) {
-        const transposedId = backend.dataIdMap.get(transposed.dataId).id;
+        var transposedId = backend.dataIdMap.get(transposed.dataId).id;
         input = transposed;
         inputId = transposedId;
     }
-    const inputRank = input.shape.length;
+    var inputRank = input.shape.length;
     tfjsCore.backend_util.assertAxesAreInnerMostDims('max', axes, inputRank);
-    const [outShape, reduceShape] = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, axes);
-    const reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
-    const out = backend.makeOutput(outShape, x.dtype);
+    var _b = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, axes), outShape = _b[0], reduceShape = _b[1];
+    var reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
+    var out = backend.makeOutput(outShape, x.dtype);
     if (tfjsCore.util.sizeFromShape(input.shape) !== 0) {
-        const outId = backend.dataIdMap.get(out.dataId).id;
+        var outId = backend.dataIdMap.get(out.dataId).id;
         wasmMax(inputId, reduceSize, outId);
     }
     if (inputWasTransposed) {
@@ -2396,12 +2396,12 @@ function max(args) {
     }
     if (keepDims) {
         // reshape
-        const newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
+        var newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
         out.shape = newShape;
     }
     return out;
 }
-const maxConfig = {
+var maxConfig = {
     kernelName: tfjsCore.Max,
     backendName: 'wasm',
     setupFunc: setup$k,
@@ -2424,8 +2424,8 @@ const maxConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$8 = false;
-const maximumConfig = createBinaryKernelConfig(tfjsCore.Maximum, supportsFullBroadcast$8);
+var supportsFullBroadcast$8 = false;
+var maximumConfig = createBinaryKernelConfig(tfjsCore.Maximum, supportsFullBroadcast$8);
 
 /**
  * @license
@@ -2443,7 +2443,7 @@ const maximumConfig = createBinaryKernelConfig(tfjsCore.Maximum, supportsFullBro
  * limitations under the License.
  * =============================================================================
  */
-let wasmMaxPool;
+var wasmMaxPool;
 function setup$l(backend) {
     wasmMaxPool = backend.wasm.cwrap(tfjsCore.MaxPool, null /* void */, [
         'number',
@@ -2466,33 +2466,33 @@ function setup$l(backend) {
     ]);
 }
 function maxPool(args) {
-    const { inputs, attrs, backend } = args;
-    const x = inputs.x;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const { filterSize, strides, pad, dimRoundingMode } = attrs;
-    const convInfo = tfjsCore.backend_util.computePool2DInfo(x.shape, filterSize, strides, 1 /* dilations */, pad, dimRoundingMode);
-    const filterHeight = convInfo.filterHeight;
-    const filterWidth = convInfo.filterWidth;
-    const padTop = convInfo.padInfo.top;
-    const padRight = convInfo.padInfo.right;
-    const padBottom = convInfo.padInfo.bottom;
-    const padLeft = convInfo.padInfo.left;
-    const dilationHeight = convInfo.dilationHeight;
-    const dilationWidth = convInfo.dilationWidth;
-    const strideHeight = convInfo.strideHeight;
-    const strideWidth = convInfo.strideWidth;
-    const inputChannels = convInfo.inChannels;
-    const outputChannels = convInfo.outChannels;
+    var inputs = args.inputs, attrs = args.attrs, backend = args.backend;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var filterSize = attrs.filterSize, strides = attrs.strides, pad = attrs.pad, dimRoundingMode = attrs.dimRoundingMode;
+    var convInfo = tfjsCore.backend_util.computePool2DInfo(x.shape, filterSize, strides, 1 /* dilations */, pad, dimRoundingMode);
+    var filterHeight = convInfo.filterHeight;
+    var filterWidth = convInfo.filterWidth;
+    var padTop = convInfo.padInfo.top;
+    var padRight = convInfo.padInfo.right;
+    var padBottom = convInfo.padInfo.bottom;
+    var padLeft = convInfo.padInfo.left;
+    var dilationHeight = convInfo.dilationHeight;
+    var dilationWidth = convInfo.dilationWidth;
+    var strideHeight = convInfo.strideHeight;
+    var strideWidth = convInfo.strideWidth;
+    var inputChannels = convInfo.inChannels;
+    var outputChannels = convInfo.outChannels;
     if (convInfo.dataFormat !== 'channelsLast') {
-        throw new Error(`wasm backend does not support dataFormat:'` +
-            `${convInfo.dataFormat}'. Please use 'channelsLast'.`);
+        throw new Error("wasm backend does not support dataFormat:'" +
+            (convInfo.dataFormat + "'. Please use 'channelsLast'."));
     }
-    const out = backend.makeOutput(convInfo.outShape, 'float32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var out = backend.makeOutput(convInfo.outShape, 'float32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmMaxPool(xId, x.shape[0], x.shape[1], x.shape[2], filterHeight, filterWidth, padTop, padRight, padBottom, padLeft, dilationHeight, dilationWidth, strideHeight, strideWidth, inputChannels, outputChannels, outId);
     return out;
 }
-const maxPoolConfig = {
+var maxPoolConfig = {
     kernelName: tfjsCore.MaxPool,
     backendName: 'wasm',
     setupFunc: setup$l,
@@ -2515,22 +2515,22 @@ const maxPoolConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmMean;
+var wasmMean;
 function setup$m(backend) {
     wasmMean =
         backend.wasm.cwrap(tfjsCore.Mean, null /*void*/, ['number, number, number']);
 }
 function mean(args) {
-    const { backend, inputs, attrs } = args;
-    const { axis, keepDims } = attrs;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    let inputId = xId;
-    let input = x;
-    const { transposed, axes, originalAxes, inputWasTransposed } = permuteAxesAndTranspose(x, axis, backend);
-    let reductionAxes = axes;
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var axis = attrs.axis, keepDims = attrs.keepDims;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var inputId = xId;
+    var input = x;
+    var _a = permuteAxesAndTranspose(x, axis, backend), transposed = _a.transposed, axes = _a.axes, originalAxes = _a.originalAxes, inputWasTransposed = _a.inputWasTransposed;
+    var reductionAxes = axes;
     if (inputWasTransposed) {
-        const transposedId = backend.dataIdMap.get(transposed.dataId).id;
+        var transposedId = backend.dataIdMap.get(transposed.dataId).id;
         if (transposedId !== xId) {
             // transpose was not a no-op. We will need to dispose of this
             // once we are done.
@@ -2540,17 +2540,17 @@ function mean(args) {
         }
     }
     tfjsCore.backend_util.assertAxesAreInnerMostDims('mean', reductionAxes, input.shape.length);
-    const [outShape, reduceShape] = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, reductionAxes);
-    const reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
-    let castedInput = input;
+    var _b = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, reductionAxes), outShape = _b[0], reduceShape = _b[1];
+    var reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
+    var castedInput = input;
     if (input.dtype !== 'float32') {
         castedInput =
-            cast({ backend, inputs: { x: input }, attrs: { dtype: 'float32' } });
+            cast({ backend: backend, inputs: { x: input }, attrs: { dtype: 'float32' } });
         inputId = backend.dataIdMap.get(castedInput.dataId).id;
     }
-    const out = backend.makeOutput(outShape, 'float32');
+    var out = backend.makeOutput(outShape, 'float32');
     if (tfjsCore.util.sizeFromShape(input.shape) !== 0) {
-        const outId = backend.dataIdMap.get(out.dataId).id;
+        var outId = backend.dataIdMap.get(out.dataId).id;
         wasmMean(inputId, reduceSize, outId);
     }
     if (inputWasTransposed) {
@@ -2559,7 +2559,7 @@ function mean(args) {
     }
     if (keepDims) {
         // reshape
-        const newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
+        var newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
         out.shape = newShape;
     }
     if (input.dtype !== 'float32') {
@@ -2567,7 +2567,7 @@ function mean(args) {
     }
     return out;
 }
-const meanConfig = {
+var meanConfig = {
     kernelName: tfjsCore.Mean,
     backendName: 'wasm',
     setupFunc: setup$m,
@@ -2590,20 +2590,20 @@ const meanConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmMin;
+var wasmMin;
 function setup$n(backend) {
     wasmMin = backend.wasm.cwrap(tfjsCore.Min, null /*void*/, ['number, number, number']);
 }
 function min(args) {
-    const { backend, inputs, attrs } = args;
-    const { axis, keepDims } = attrs;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    let inputId = xId;
-    let input = x;
-    const { transposed, axes, originalAxes, inputWasTransposed } = permuteAxesAndTranspose(x, axis, backend);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var axis = attrs.axis, keepDims = attrs.keepDims;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var inputId = xId;
+    var input = x;
+    var _a = permuteAxesAndTranspose(x, axis, backend), transposed = _a.transposed, axes = _a.axes, originalAxes = _a.originalAxes, inputWasTransposed = _a.inputWasTransposed;
     if (inputWasTransposed) {
-        const transposedId = backend.dataIdMap.get(transposed.dataId).id;
+        var transposedId = backend.dataIdMap.get(transposed.dataId).id;
         if (transposedId !== xId) {
             // transpose was not a no-op. We will need to dispose of this
             // once we are done.
@@ -2611,13 +2611,13 @@ function min(args) {
             inputId = transposedId;
         }
     }
-    const inputRank = input.shape.length;
+    var inputRank = input.shape.length;
     tfjsCore.backend_util.assertAxesAreInnerMostDims('min', axes, inputRank);
-    const [outShape, reduceShape] = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, axes);
-    const reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
-    const out = backend.makeOutput(outShape, input.dtype);
+    var _b = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, axes), outShape = _b[0], reduceShape = _b[1];
+    var reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
+    var out = backend.makeOutput(outShape, input.dtype);
     if (tfjsCore.util.sizeFromShape(input.shape) !== 0) {
-        const outId = backend.dataIdMap.get(out.dataId).id;
+        var outId = backend.dataIdMap.get(out.dataId).id;
         wasmMin(inputId, reduceSize, outId);
     }
     if (inputWasTransposed) {
@@ -2626,12 +2626,12 @@ function min(args) {
     }
     if (keepDims) {
         // reshape
-        const newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
+        var newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
         out.shape = newShape;
     }
     return out;
 }
-const minConfig = {
+var minConfig = {
     kernelName: tfjsCore.Min,
     backendName: 'wasm',
     setupFunc: setup$n,
@@ -2654,8 +2654,8 @@ const minConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$9 = false;
-const minimumConfig = createBinaryKernelConfig(tfjsCore.Minimum, supportsFullBroadcast$9);
+var supportsFullBroadcast$9 = false;
+var minimumConfig = createBinaryKernelConfig(tfjsCore.Minimum, supportsFullBroadcast$9);
 
 /**
  * @license
@@ -2679,7 +2679,7 @@ var MirrorPaddingMode;
     MirrorPaddingMode[MirrorPaddingMode["reflect"] = 0] = "reflect";
     MirrorPaddingMode[MirrorPaddingMode["symmetric"] = 1] = "symmetric";
 })(MirrorPaddingMode || (MirrorPaddingMode = {}));
-let wasmMirrorPad;
+var wasmMirrorPad;
 function setup$o(backend) {
     wasmMirrorPad = backend.wasm.cwrap(tfjsCore.MirrorPad, null /* void */, [
         'number',
@@ -2693,20 +2693,20 @@ function setup$o(backend) {
     ]);
 }
 function mirrorPad(args) {
-    const { inputs: { x }, backend, attrs: { paddings, mode } } = args;
-    const outShape = paddings.map((p, i) => p[0] /* beforePad */ + x.shape[i] + p[1] /* afterPad */);
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const out = backend.makeOutput(outShape, x.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
-    const prePaddingsFlat = paddings.map(padTuple => padTuple[0]);
-    const postPaddingsFlat = paddings.map(padTuple => padTuple[1]);
-    const prePaddingsBytes = new Uint8Array(new Int32Array(prePaddingsFlat).buffer);
-    const postPaddingsBytes = new Uint8Array(new Int32Array(postPaddingsFlat).buffer);
+    var x = args.inputs.x, backend = args.backend, _a = args.attrs, paddings = _a.paddings, mode = _a.mode;
+    var outShape = paddings.map(function (p, i) { return p[0] /* beforePad */ + x.shape[i] + p[1]; } /* afterPad */);
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var out = backend.makeOutput(outShape, x.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
+    var prePaddingsFlat = paddings.map(function (padTuple) { return padTuple[0]; });
+    var postPaddingsFlat = paddings.map(function (padTuple) { return padTuple[1]; });
+    var prePaddingsBytes = new Uint8Array(new Int32Array(prePaddingsFlat).buffer);
+    var postPaddingsBytes = new Uint8Array(new Int32Array(postPaddingsFlat).buffer);
     wasmMirrorPad(xId, xShapeBytes, x.shape.length, CppDType[x.dtype], prePaddingsBytes, postPaddingsBytes, MirrorPaddingMode[mode], outId);
     return out;
 }
-const mirrorPadConfig = {
+var mirrorPadConfig = {
     kernelName: tfjsCore.MirrorPad,
     backendName: 'wasm',
     kernelFunc: mirrorPad,
@@ -2729,8 +2729,8 @@ const mirrorPadConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$a = true;
-const multiplyConfig = createBinaryKernelConfig(tfjsCore.Multiply, supportsFullBroadcast$a);
+var supportsFullBroadcast$a = true;
+var multiplyConfig = createBinaryKernelConfig(tfjsCore.Multiply, supportsFullBroadcast$a);
 
 /**
  * @license
@@ -2748,7 +2748,7 @@ const multiplyConfig = createBinaryKernelConfig(tfjsCore.Multiply, supportsFullB
  * limitations under the License.
  * =============================================================================
  */
-const negConfig = createUnaryKernelConfig(tfjsCore.Neg);
+var negConfig = createUnaryKernelConfig(tfjsCore.Neg);
 
 /**
  * @license
@@ -2771,14 +2771,14 @@ const negConfig = createUnaryKernelConfig(tfjsCore.Neg);
  * `Result`.
  */
 function parseResultStruct(backend, resOffset) {
-    const result = new Int32Array(backend.wasm.HEAPU8.buffer, resOffset, 4);
-    const pSelectedIndices = result[0];
-    const selectedSize = result[1];
-    const pSelectedScores = result[2];
-    const pValidOutputs = result[3];
+    var result = new Int32Array(backend.wasm.HEAPU8.buffer, resOffset, 4);
+    var pSelectedIndices = result[0];
+    var selectedSize = result[1];
+    var pSelectedScores = result[2];
+    var pValidOutputs = result[3];
     // Since the result was allocated on the heap, we have to delete it.
     backend.wasm._free(resOffset);
-    return { pSelectedIndices, selectedSize, pSelectedScores, pValidOutputs };
+    return { pSelectedIndices: pSelectedIndices, selectedSize: selectedSize, pSelectedScores: pSelectedScores, pValidOutputs: pValidOutputs };
 }
 
 /**
@@ -2797,7 +2797,7 @@ function parseResultStruct(backend, resOffset) {
  * limitations under the License.
  * =============================================================================
  */
-let wasmFunc$3;
+var wasmFunc$3;
 function setup$p(backend) {
     wasmFunc$3 = backend.wasm.cwrap(tfjsCore.NonMaxSuppressionV3, 'number', // Result*
     [
@@ -2809,20 +2809,20 @@ function setup$p(backend) {
     ]);
 }
 function kernelFunc(args) {
-    const { backend, inputs, attrs } = args;
-    const { iouThreshold, maxOutputSize, scoreThreshold } = attrs;
-    const { boxes, scores } = inputs;
-    const boxesId = backend.dataIdMap.get(boxes.dataId).id;
-    const scoresId = backend.dataIdMap.get(scores.dataId).id;
-    const resOffset = wasmFunc$3(boxesId, scoresId, maxOutputSize, iouThreshold, scoreThreshold);
-    const { pSelectedIndices, selectedSize, pSelectedScores, pValidOutputs } = parseResultStruct(backend, resOffset);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var iouThreshold = attrs.iouThreshold, maxOutputSize = attrs.maxOutputSize, scoreThreshold = attrs.scoreThreshold;
+    var boxes = inputs.boxes, scores = inputs.scores;
+    var boxesId = backend.dataIdMap.get(boxes.dataId).id;
+    var scoresId = backend.dataIdMap.get(scores.dataId).id;
+    var resOffset = wasmFunc$3(boxesId, scoresId, maxOutputSize, iouThreshold, scoreThreshold);
+    var _a = parseResultStruct(backend, resOffset), pSelectedIndices = _a.pSelectedIndices, selectedSize = _a.selectedSize, pSelectedScores = _a.pSelectedScores, pValidOutputs = _a.pValidOutputs;
     // Since we are not using scores for V3, we have to delete it from the heap.
     backend.wasm._free(pSelectedScores);
     backend.wasm._free(pValidOutputs);
-    const selectedIndicesTensor = backend.makeOutput([selectedSize], 'int32', pSelectedIndices);
+    var selectedIndicesTensor = backend.makeOutput([selectedSize], 'int32', pSelectedIndices);
     return selectedIndicesTensor;
 }
-const nonMaxSuppressionV3Config = {
+var nonMaxSuppressionV3Config = {
     kernelName: tfjsCore.NonMaxSuppressionV3,
     backendName: 'wasm',
     setupFunc: setup$p,
@@ -2845,7 +2845,7 @@ const nonMaxSuppressionV3Config = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmFunc$4;
+var wasmFunc$4;
 function setup$q(backend) {
     wasmFunc$4 = backend.wasm.cwrap(tfjsCore.NonMaxSuppressionV4, 'number', // Result*
     [
@@ -2858,20 +2858,20 @@ function setup$q(backend) {
     ]);
 }
 function nonMaxSuppressionV4(args) {
-    const { backend, inputs, attrs } = args;
-    const { iouThreshold, maxOutputSize, scoreThreshold, padToMaxOutputSize } = attrs;
-    const { boxes, scores } = inputs;
-    const boxesId = backend.dataIdMap.get(boxes.dataId).id;
-    const scoresId = backend.dataIdMap.get(scores.dataId).id;
-    const resOffset = wasmFunc$4(boxesId, scoresId, maxOutputSize, iouThreshold, scoreThreshold, padToMaxOutputSize);
-    const { pSelectedIndices, selectedSize, pSelectedScores, pValidOutputs } = parseResultStruct(backend, resOffset);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var iouThreshold = attrs.iouThreshold, maxOutputSize = attrs.maxOutputSize, scoreThreshold = attrs.scoreThreshold, padToMaxOutputSize = attrs.padToMaxOutputSize;
+    var boxes = inputs.boxes, scores = inputs.scores;
+    var boxesId = backend.dataIdMap.get(boxes.dataId).id;
+    var scoresId = backend.dataIdMap.get(scores.dataId).id;
+    var resOffset = wasmFunc$4(boxesId, scoresId, maxOutputSize, iouThreshold, scoreThreshold, padToMaxOutputSize);
+    var _a = parseResultStruct(backend, resOffset), pSelectedIndices = _a.pSelectedIndices, selectedSize = _a.selectedSize, pSelectedScores = _a.pSelectedScores, pValidOutputs = _a.pValidOutputs;
     // Since we are not using scores for V4, we have to delete it from the heap.
     backend.wasm._free(pSelectedScores);
-    const selectedIndicesTensor = backend.makeOutput([selectedSize], 'int32', pSelectedIndices);
-    const validOutputsTensor = backend.makeOutput([], 'int32', pValidOutputs);
+    var selectedIndicesTensor = backend.makeOutput([selectedSize], 'int32', pSelectedIndices);
+    var validOutputsTensor = backend.makeOutput([], 'int32', pValidOutputs);
     return [selectedIndicesTensor, validOutputsTensor];
 }
-const nonMaxSuppressionV4Config = {
+var nonMaxSuppressionV4Config = {
     kernelName: tfjsCore.NonMaxSuppressionV4,
     backendName: 'wasm',
     setupFunc: setup$q,
@@ -2894,7 +2894,7 @@ const nonMaxSuppressionV4Config = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmFunc$5;
+var wasmFunc$5;
 function setup$r(backend) {
     wasmFunc$5 = backend.wasm.cwrap(tfjsCore.NonMaxSuppressionV5, 'number', // Result*
     [
@@ -2907,21 +2907,21 @@ function setup$r(backend) {
     ]);
 }
 function kernelFunc$1(args) {
-    const { backend, inputs, attrs } = args;
-    const { iouThreshold, maxOutputSize, scoreThreshold, softNmsSigma } = attrs;
-    const { boxes, scores } = inputs;
-    const boxesId = backend.dataIdMap.get(boxes.dataId).id;
-    const scoresId = backend.dataIdMap.get(scores.dataId).id;
-    const resOffset = wasmFunc$5(boxesId, scoresId, maxOutputSize, iouThreshold, scoreThreshold, softNmsSigma);
-    const { pSelectedIndices, selectedSize, pSelectedScores, pValidOutputs } = parseResultStruct(backend, resOffset);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var iouThreshold = attrs.iouThreshold, maxOutputSize = attrs.maxOutputSize, scoreThreshold = attrs.scoreThreshold, softNmsSigma = attrs.softNmsSigma;
+    var boxes = inputs.boxes, scores = inputs.scores;
+    var boxesId = backend.dataIdMap.get(boxes.dataId).id;
+    var scoresId = backend.dataIdMap.get(scores.dataId).id;
+    var resOffset = wasmFunc$5(boxesId, scoresId, maxOutputSize, iouThreshold, scoreThreshold, softNmsSigma);
+    var _a = parseResultStruct(backend, resOffset), pSelectedIndices = _a.pSelectedIndices, selectedSize = _a.selectedSize, pSelectedScores = _a.pSelectedScores, pValidOutputs = _a.pValidOutputs;
     // Since we are not using validOutputs for V5, we have to delete it from the
     // heap.
     backend.wasm._free(pValidOutputs);
-    const selectedIndicesTensor = backend.makeOutput([selectedSize], 'int32', pSelectedIndices);
-    const selectedScoresTensor = backend.makeOutput([selectedSize], 'float32', pSelectedScores);
+    var selectedIndicesTensor = backend.makeOutput([selectedSize], 'int32', pSelectedIndices);
+    var selectedScoresTensor = backend.makeOutput([selectedSize], 'float32', pSelectedScores);
     return [selectedIndicesTensor, selectedScoresTensor];
 }
-const nonMaxSuppressionV5Config = {
+var nonMaxSuppressionV5Config = {
     kernelName: tfjsCore.NonMaxSuppressionV5,
     backendName: 'wasm',
     setupFunc: setup$r,
@@ -2944,8 +2944,8 @@ const nonMaxSuppressionV5Config = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$b = false;
-const notEqualConfig = createBinaryKernelConfig(tfjsCore.NotEqual, supportsFullBroadcast$b, 'bool');
+var supportsFullBroadcast$b = false;
+var notEqualConfig = createBinaryKernelConfig(tfjsCore.NotEqual, supportsFullBroadcast$b, 'bool');
 
 /**
  * @license
@@ -2963,7 +2963,7 @@ const notEqualConfig = createBinaryKernelConfig(tfjsCore.NotEqual, supportsFullB
  * limitations under the License.
  * =============================================================================
  */
-let wasmOneHot;
+var wasmOneHot;
 function setup$s(backend) {
     wasmOneHot = backend.wasm.cwrap(tfjsCore.OneHot, null /* void */, [
         'number',
@@ -2974,17 +2974,17 @@ function setup$s(backend) {
     ]);
 }
 function oneHot(args) {
-    const { inputs, backend, attrs } = args;
-    const { indices } = inputs;
-    const { depth, onValue, offValue } = attrs;
-    const out = backend.makeOutput([...indices.shape, depth], 'int32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const indicesData = backend.dataIdMap.get(indices.dataId);
-    const indicesId = indicesData.id;
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var indices = inputs.indices;
+    var depth = attrs.depth, onValue = attrs.onValue, offValue = attrs.offValue;
+    var out = backend.makeOutput(indices.shape.concat([depth]), 'int32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var indicesData = backend.dataIdMap.get(indices.dataId);
+    var indicesId = indicesData.id;
     wasmOneHot(indicesId, depth, onValue, offValue, outId);
     return out;
 }
-const oneHotConfig = {
+var oneHotConfig = {
     kernelName: tfjsCore.OneHot,
     backendName: 'wasm',
     setupFunc: setup$s,
@@ -3008,13 +3008,13 @@ const oneHotConfig = {
  * =============================================================================
  */
 function onesLike(args) {
-    const { inputs: { x }, backend } = args;
-    const out = backend.makeOutput(x.shape, x.dtype);
-    const outVals = backend.typedArrayFromHeap(out);
+    var x = args.inputs.x, backend = args.backend;
+    var out = backend.makeOutput(x.shape, x.dtype);
+    var outVals = backend.typedArrayFromHeap(out);
     outVals.fill(1);
     return out;
 }
-const onesLikeConfig = {
+var onesLikeConfig = {
     kernelName: tfjsCore.OnesLike,
     backendName: 'wasm',
     kernelFunc: onesLike,
@@ -3037,28 +3037,28 @@ const onesLikeConfig = {
  * =============================================================================
  */
 function pack(args) {
-    const { inputs, backend, attrs } = args;
-    const { axis } = attrs;
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var axis = attrs.axis;
     if (inputs.length === 1) {
-        return expandDims({ inputs: { input: inputs[0] }, backend, attrs: { dim: axis } });
+        return expandDims({ inputs: { input: inputs[0] }, backend: backend, attrs: { dim: axis } });
     }
-    const shape = inputs[0].shape;
-    const dtype = inputs[0].dtype;
-    inputs.forEach(t => {
+    var shape = inputs[0].shape;
+    var dtype = inputs[0].dtype;
+    inputs.forEach(function (t) {
         tfjsCore.util.assertShapesMatch(shape, t.shape, 'All tensors passed to stack must have matching shapes');
-        tfjsCore.util.assert(dtype === t.dtype, () => 'All tensors passed to stack must have matching dtypes');
+        tfjsCore.util.assert(dtype === t.dtype, function () { return 'All tensors passed to stack must have matching dtypes'; });
     });
-    const intermediateTensorInfos = [];
-    const expandedTensors = inputs.map(t => {
-        const expandedT = expandDims({ inputs: { input: t }, backend, attrs: { dim: axis } });
+    var intermediateTensorInfos = [];
+    var expandedTensors = inputs.map(function (t) {
+        var expandedT = expandDims({ inputs: { input: t }, backend: backend, attrs: { dim: axis } });
         intermediateTensorInfos.push(expandedT);
         return expandedT;
     });
-    const result = concat({ inputs: expandedTensors, backend, attrs: { axis } });
-    intermediateTensorInfos.forEach(t => backend.disposeData(t.dataId));
+    var result = concat({ inputs: expandedTensors, backend: backend, attrs: { axis: axis } });
+    intermediateTensorInfos.forEach(function (t) { return backend.disposeData(t.dataId); });
     return result;
 }
-const packConfig = {
+var packConfig = {
     kernelName: tfjsCore.Pack,
     backendName: 'wasm',
     kernelFunc: pack
@@ -3080,7 +3080,7 @@ const packConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmPadV2;
+var wasmPadV2;
 function setup$t(backend) {
     wasmPadV2 = backend.wasm.cwrap(tfjsCore.PadV2, null /* void */, [
         'number',
@@ -3094,20 +3094,20 @@ function setup$t(backend) {
     ]);
 }
 function pad(args) {
-    const { inputs: { x }, backend, attrs: { paddings, constantValue } } = args;
-    const outShape = paddings.map((p, i) => p[0] /* beforePad */ + x.shape[i] + p[1] /* afterPad */);
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const out = backend.makeOutput(outShape, x.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
-    const prePaddingsFlat = paddings.map(padTuple => padTuple[0]);
-    const postPaddingsFlat = paddings.map(padTuple => padTuple[1]);
-    const prePaddingsBytes = new Uint8Array(new Int32Array(prePaddingsFlat).buffer);
-    const postPaddingsBytes = new Uint8Array(new Int32Array(postPaddingsFlat).buffer);
+    var x = args.inputs.x, backend = args.backend, _a = args.attrs, paddings = _a.paddings, constantValue = _a.constantValue;
+    var outShape = paddings.map(function (p, i) { return p[0] /* beforePad */ + x.shape[i] + p[1]; } /* afterPad */);
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var out = backend.makeOutput(outShape, x.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
+    var prePaddingsFlat = paddings.map(function (padTuple) { return padTuple[0]; });
+    var postPaddingsFlat = paddings.map(function (padTuple) { return padTuple[1]; });
+    var prePaddingsBytes = new Uint8Array(new Int32Array(prePaddingsFlat).buffer);
+    var postPaddingsBytes = new Uint8Array(new Int32Array(postPaddingsFlat).buffer);
     wasmPadV2(xId, xShapeBytes, x.shape.length, CppDType[x.dtype], prePaddingsBytes, postPaddingsBytes, constantValue, outId);
     return out;
 }
-const padV2Config = {
+var padV2Config = {
     kernelName: tfjsCore.PadV2,
     backendName: 'wasm',
     kernelFunc: pad,
@@ -3130,8 +3130,8 @@ const padV2Config = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$c = false;
-const powConfig = createBinaryKernelConfig(tfjsCore.Pow, supportsFullBroadcast$c);
+var supportsFullBroadcast$c = false;
+var powConfig = createBinaryKernelConfig(tfjsCore.Pow, supportsFullBroadcast$c);
 
 /**
  * @license
@@ -3149,7 +3149,7 @@ const powConfig = createBinaryKernelConfig(tfjsCore.Pow, supportsFullBroadcast$c
  * limitations under the License.
  * =============================================================================
  */
-let wasmPrelu;
+var wasmPrelu;
 function setup$u(backend) {
     wasmPrelu = backend.wasm.cwrap(tfjsCore.Prelu, null /* void */, [
         'number',
@@ -3158,16 +3158,16 @@ function setup$u(backend) {
     ]);
 }
 function prelu(args) {
-    const { inputs, backend } = args;
-    const { x, alpha } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const weightsId = backend.dataIdMap.get(alpha.dataId).id;
-    const out = backend.makeOutput(x.shape, 'float32');
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var inputs = args.inputs, backend = args.backend;
+    var x = inputs.x, alpha = inputs.alpha;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var weightsId = backend.dataIdMap.get(alpha.dataId).id;
+    var out = backend.makeOutput(x.shape, 'float32');
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmPrelu(xId, weightsId, outId);
     return out;
 }
-const preluConfig = {
+var preluConfig = {
     kernelName: tfjsCore.Prelu,
     backendName: 'wasm',
     setupFunc: setup$u,
@@ -3190,7 +3190,7 @@ const preluConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmProd;
+var wasmProd;
 function setup$v(backend) {
     wasmProd = backend.wasm.cwrap(tfjsCore.Prod, null /*void*/, [
         'number',
@@ -3200,16 +3200,16 @@ function setup$v(backend) {
     ]);
 }
 function prod(args) {
-    const { backend, inputs, attrs } = args;
-    const { axis, keepDims } = attrs;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    let inputId = xId;
-    let input = x;
-    const { transposed, axes, originalAxes, inputWasTransposed } = permuteAxesAndTranspose(x, axis, backend);
-    let reductionAxes = axes;
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var axis = attrs.axis, keepDims = attrs.keepDims;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var inputId = xId;
+    var input = x;
+    var _a = permuteAxesAndTranspose(x, axis, backend), transposed = _a.transposed, axes = _a.axes, originalAxes = _a.originalAxes, inputWasTransposed = _a.inputWasTransposed;
+    var reductionAxes = axes;
     if (inputWasTransposed) {
-        const transposedId = backend.dataIdMap.get(transposed.dataId).id;
+        var transposedId = backend.dataIdMap.get(transposed.dataId).id;
         if (transposedId !== xId) {
             // transpose was not a no-op. We will need to dispose of this
             // once we are done.
@@ -3219,11 +3219,11 @@ function prod(args) {
         }
     }
     tfjsCore.backend_util.assertAxesAreInnerMostDims('prod', reductionAxes, input.shape.length);
-    const [outShape, reduceShape] = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, reductionAxes);
-    const reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
-    const out = backend.makeOutput(outShape, input.dtype);
+    var _b = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, reductionAxes), outShape = _b[0], reduceShape = _b[1];
+    var reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
+    var out = backend.makeOutput(outShape, input.dtype);
     if (tfjsCore.util.sizeFromShape(input.shape) !== 0) {
-        const outId = backend.dataIdMap.get(out.dataId).id;
+        var outId = backend.dataIdMap.get(out.dataId).id;
         wasmProd(inputId, reduceSize, CppDType[out.dtype], outId);
     }
     if (inputWasTransposed) {
@@ -3232,12 +3232,12 @@ function prod(args) {
     }
     if (keepDims) {
         // reshape
-        const newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
+        var newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
         out.shape = newShape;
     }
     return out;
 }
-const prodConfig = {
+var prodConfig = {
     kernelName: tfjsCore.Prod,
     backendName: 'wasm',
     setupFunc: setup$v,
@@ -3260,16 +3260,16 @@ const prodConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const range = (args) => {
-    const { backend, attrs } = args;
-    const { start, stop, step, dtype } = attrs;
-    const values = rangeImpl(start, stop, step, dtype);
-    const out = backend.makeOutput([values.length], dtype);
-    const outVals = backend.typedArrayFromHeap(out);
+var range = function (args) {
+    var backend = args.backend, attrs = args.attrs;
+    var start = attrs.start, stop = attrs.stop, step = attrs.step, dtype = attrs.dtype;
+    var values = rangeImpl(start, stop, step, dtype);
+    var out = backend.makeOutput([values.length], dtype);
+    var outVals = backend.typedArrayFromHeap(out);
     outVals.set(values);
     return out;
 };
-const rangeConfig = {
+var rangeConfig = {
     kernelName: tfjsCore.Range,
     backendName: 'wasm',
     kernelFunc: range
@@ -3291,8 +3291,8 @@ const rangeConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$d = true;
-const realDivConfig = createBinaryKernelConfig(tfjsCore.RealDiv, supportsFullBroadcast$d);
+var supportsFullBroadcast$d = true;
+var realDivConfig = createBinaryKernelConfig(tfjsCore.RealDiv, supportsFullBroadcast$d);
 
 /**
  * @license
@@ -3310,7 +3310,7 @@ const realDivConfig = createBinaryKernelConfig(tfjsCore.RealDiv, supportsFullBro
  * limitations under the License.
  * =============================================================================
  */
-const reluConfig = createUnaryKernelConfig(tfjsCore.Relu);
+var reluConfig = createUnaryKernelConfig(tfjsCore.Relu);
 
 /**
  * @license
@@ -3328,7 +3328,7 @@ const reluConfig = createUnaryKernelConfig(tfjsCore.Relu);
  * limitations under the License.
  * =============================================================================
  */
-const relu6Config = createUnaryKernelConfig(tfjsCore.Relu6);
+var relu6Config = createUnaryKernelConfig(tfjsCore.Relu6);
 
 /**
  * @license
@@ -3346,7 +3346,7 @@ const relu6Config = createUnaryKernelConfig(tfjsCore.Relu6);
  * limitations under the License.
  * =============================================================================
  */
-let wasmResizeBilinear;
+var wasmResizeBilinear;
 function setup$w(backend) {
     wasmResizeBilinear = backend.wasm.cwrap(tfjsCore.ResizeBilinear, null /*void*/, [
         'number',
@@ -3362,32 +3362,32 @@ function setup$w(backend) {
     ]);
 }
 function resizeBilinear(args) {
-    const { backend, inputs, attrs } = args;
-    const { images } = inputs;
-    const { alignCorners, halfPixelCenters, size } = attrs;
-    const [newHeight, newWidth] = size;
-    const [batch, oldHeight, oldWidth, numChannels] = images.shape;
-    const outShape = [batch, newHeight, newWidth, numChannels];
-    let xData = backend.dataIdMap.get(images.dataId);
-    let castedData;
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var images = inputs.images;
+    var alignCorners = attrs.alignCorners, halfPixelCenters = attrs.halfPixelCenters, size = attrs.size;
+    var newHeight = size[0], newWidth = size[1];
+    var _a = images.shape, batch = _a[0], oldHeight = _a[1], oldWidth = _a[2], numChannels = _a[3];
+    var outShape = [batch, newHeight, newWidth, numChannels];
+    var xData = backend.dataIdMap.get(images.dataId);
+    var castedData;
     if (xData.dtype !== 'float32') {
         castedData =
-            cast({ backend, inputs: { x: images }, attrs: { dtype: 'float32' } });
+            cast({ backend: backend, inputs: { x: images }, attrs: { dtype: 'float32' } });
         xData = backend.dataIdMap.get(castedData.dataId);
     }
-    const xId = xData.id;
-    const out = backend.makeOutput(outShape, 'float32');
+    var xId = xData.id;
+    var out = backend.makeOutput(outShape, 'float32');
     if (tfjsCore.util.sizeFromShape(images.shape) === 0) {
         return out;
     }
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmResizeBilinear(xId, batch, oldHeight, oldWidth, numChannels, newHeight, newWidth, alignCorners ? 1 : 0, halfPixelCenters ? 1 : 0, outId);
     if (castedData != null) {
         backend.disposeData(castedData.dataId);
     }
     return out;
 }
-const resizeBilinearConfig = {
+var resizeBilinearConfig = {
     kernelName: tfjsCore.ResizeBilinear,
     backendName: 'wasm',
     setupFunc: setup$w,
@@ -3410,7 +3410,7 @@ const resizeBilinearConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmReverse;
+var wasmReverse;
 function setup$x(backend) {
     wasmReverse = backend.wasm.cwrap(tfjsCore.Reverse, null, [
         'number',
@@ -3422,24 +3422,24 @@ function setup$x(backend) {
     ]);
 }
 function reverse(args) {
-    const { inputs, backend, attrs } = args;
-    const { x } = inputs;
-    const { dims } = attrs;
-    const axes = tfjsCore.util.parseAxisParam(dims, x.shape);
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var x = inputs.x;
+    var dims = attrs.dims;
+    var axes = tfjsCore.util.parseAxisParam(dims, x.shape);
     if (x.shape.length === 0) {
-        return identity({ inputs: { x }, backend });
+        return identity({ inputs: { x: x }, backend: backend });
     }
-    const out = backend.makeOutput(x.shape, x.dtype);
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const axesBytes = new Uint8Array(new Int32Array(axes).buffer);
-    const outShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
+    var out = backend.makeOutput(x.shape, x.dtype);
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var axesBytes = new Uint8Array(new Int32Array(axes).buffer);
+    var outShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
     wasmReverse(xId, axesBytes, axes.length, outShapeBytes, x.shape.length, outId);
-    const reshaped = reshape({ inputs: { x: out }, attrs: { shape: x.shape }, backend });
+    var reshaped = reshape({ inputs: { x: out }, attrs: { shape: x.shape }, backend: backend });
     backend.disposeData(out.dataId);
     return reshaped;
 }
-const reverseConfig = {
+var reverseConfig = {
     kernelName: tfjsCore.Reverse,
     backendName: 'wasm',
     kernelFunc: reverse,
@@ -3462,7 +3462,7 @@ const reverseConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmRotate;
+var wasmRotate;
 function setup$y(backend) {
     wasmRotate = backend.wasm.cwrap(tfjsCore.RotateWithOffset, null /* void */, [
         'number',
@@ -3479,24 +3479,23 @@ function setup$y(backend) {
     ]);
 }
 function rotateWithOffset(args) {
-    const { inputs, backend, attrs } = args;
-    const { image } = inputs;
-    const { radians, fillValue, center } = attrs;
-    const out = backend.makeOutput(image.shape, image.dtype);
-    const imageId = backend.dataIdMap.get(image.dataId).id;
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const [batch, imageHeight, imageWidth, numChannels] = image.shape;
-    const [centerX, centerY] = tfjsCore.backend_util.getImageCenter(center, imageHeight, imageWidth);
-    const fillIsBlack = fillValue === 0;
-    const fullOpacityValue = 255;
-    const fillValues = typeof fillValue === 'number' ?
-        [fillValue, fillValue, fillValue, fillIsBlack ? 0 : fullOpacityValue] :
-        [...fillValue, fullOpacityValue];
-    const fillBytes = new Uint8Array(new Int32Array(fillValues).buffer);
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var image = inputs.image;
+    var radians = attrs.radians, fillValue = attrs.fillValue, center = attrs.center;
+    var out = backend.makeOutput(image.shape, image.dtype);
+    var imageId = backend.dataIdMap.get(image.dataId).id;
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var _a = image.shape, batch = _a[0], imageHeight = _a[1], imageWidth = _a[2], numChannels = _a[3];
+    var _b = tfjsCore.backend_util.getImageCenter(center, imageHeight, imageWidth), centerX = _b[0], centerY = _b[1];
+    var fillIsBlack = fillValue === 0;
+    var fullOpacityValue = 255;
+    var fillValues = typeof fillValue === 'number' ?
+        [fillValue, fillValue, fillValue, fillIsBlack ? 0 : fullOpacityValue] : fillValue.concat([fullOpacityValue]);
+    var fillBytes = new Uint8Array(new Int32Array(fillValues).buffer);
     wasmRotate(imageId, batch, imageHeight, imageWidth, numChannels, radians, centerX, centerY, fillBytes, fillValues.length, outId);
     return out;
 }
-const rotateWithOffsetConfig = {
+var rotateWithOffsetConfig = {
     kernelName: tfjsCore.RotateWithOffset,
     backendName: 'wasm',
     kernelFunc: rotateWithOffset,
@@ -3519,7 +3518,7 @@ const rotateWithOffsetConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const roundConfig = createUnaryKernelConfig(tfjsCore.Round);
+var roundConfig = createUnaryKernelConfig(tfjsCore.Round);
 
 /**
  * @license
@@ -3537,7 +3536,7 @@ const roundConfig = createUnaryKernelConfig(tfjsCore.Round);
  * limitations under the License.
  * =============================================================================
  */
-const rsqrtConfig = createUnaryKernelConfig(tfjsCore.Rsqrt);
+var rsqrtConfig = createUnaryKernelConfig(tfjsCore.Rsqrt);
 
 /**
  * @license
@@ -3555,7 +3554,7 @@ const rsqrtConfig = createUnaryKernelConfig(tfjsCore.Rsqrt);
  * limitations under the License.
  * =============================================================================
  */
-let wasmScatterNd;
+var wasmScatterNd;
 function setup$z(backend) {
     wasmScatterNd = backend.wasm.cwrap(tfjsCore.ScatterNd, null /*void*/, [
         'number',
@@ -3570,24 +3569,24 @@ function setup$z(backend) {
     ]);
 }
 function scatterNd(args) {
-    const { backend, inputs, attrs } = args;
-    const { indices, updates } = inputs;
-    const { shape } = attrs;
-    const out = backend.makeOutput(shape, updates.dtype);
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var indices = inputs.indices, updates = inputs.updates;
+    var shape = attrs.shape;
+    var out = backend.makeOutput(shape, updates.dtype);
     if (tfjsCore.util.sizeFromShape(shape) === 0) {
         return out;
     }
-    const { sliceRank, numUpdates, sliceSize, strides, outputSize } = tfjsCore.scatter_util.calculateShapes(updates, indices, shape);
-    const indicesData = backend.dataIdMap.get(indices.dataId);
-    const indicesId = indicesData.id;
-    const updatesData = backend.dataIdMap.get(updates.dataId);
-    const updatesId = updatesData.id;
-    const stridesBytes = new Uint8Array(new Int32Array(strides).buffer);
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var _a = tfjsCore.scatter_util.calculateShapes(updates, indices, shape), sliceRank = _a.sliceRank, numUpdates = _a.numUpdates, sliceSize = _a.sliceSize, strides = _a.strides, outputSize = _a.outputSize;
+    var indicesData = backend.dataIdMap.get(indices.dataId);
+    var indicesId = indicesData.id;
+    var updatesData = backend.dataIdMap.get(updates.dataId);
+    var updatesId = updatesData.id;
+    var stridesBytes = new Uint8Array(new Int32Array(strides).buffer);
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmScatterNd(indicesId, updatesId, CppDType[updates.dtype], sliceRank, numUpdates, sliceSize, stridesBytes, outputSize, outId);
     return out;
 }
-const scatterNdConfig = {
+var scatterNdConfig = {
     kernelName: tfjsCore.ScatterNd,
     backendName: 'wasm',
     setupFunc: setup$z,
@@ -3610,7 +3609,7 @@ const scatterNdConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmSelect;
+var wasmSelect;
 function setup$A(backend) {
     wasmSelect = backend.wasm.cwrap('SelectV2', null, [
         'number',
@@ -3621,22 +3620,22 @@ function setup$A(backend) {
     ]);
 }
 function select(args) {
-    const { inputs, backend } = args;
-    const { condition, t, e } = inputs;
-    const conditionId = backend.dataIdMap.get(condition.dataId).id;
-    const tId = backend.dataIdMap.get(t.dataId).id;
-    const eId = backend.dataIdMap.get(e.dataId).id;
-    const out = backend.makeOutput(t.shape, t.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const cRank = condition.shape.length;
-    const tRank = t.shape.length;
-    const offset = cRank === 0 || cRank > 1 || tRank === 1 ?
+    var inputs = args.inputs, backend = args.backend;
+    var condition = inputs.condition, t = inputs.t, e = inputs.e;
+    var conditionId = backend.dataIdMap.get(condition.dataId).id;
+    var tId = backend.dataIdMap.get(t.dataId).id;
+    var eId = backend.dataIdMap.get(e.dataId).id;
+    var out = backend.makeOutput(t.shape, t.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var cRank = condition.shape.length;
+    var tRank = t.shape.length;
+    var offset = cRank === 0 || cRank > 1 || tRank === 1 ?
         1 :
         tfjsCore.util.sizeFromShape(t.shape.slice(1));
     wasmSelect(conditionId, tId, eId, offset, outId);
     return out;
 }
-const selectConfig = {
+var selectConfig = {
     kernelName: tfjsCore.Select,
     backendName: 'wasm',
     kernelFunc: select,
@@ -3659,15 +3658,15 @@ const selectConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmFunc$6;
+var wasmFunc$6;
 function setup$B(backend) {
     wasmFunc$6 = backend.wasm.cwrap(tfjsCore.Sigmoid, null /* void */, ['number', 'number']);
 }
 function sigmoid(args) {
-    const { backend, inputs: { x } } = args;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const out = backend.makeOutput(x.shape, x.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var backend = args.backend, x = args.inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var out = backend.makeOutput(x.shape, x.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
     // Short-circuit zero-sized tensors.
     if (tfjsCore.util.sizeFromShape(out.shape) === 0) {
         return out;
@@ -3675,7 +3674,7 @@ function sigmoid(args) {
     wasmFunc$6(xId, outId);
     return out;
 }
-const sigmoidConfig = {
+var sigmoidConfig = {
     kernelName: 'Sigmoid',
     backendName: 'wasm',
     setupFunc: setup$B,
@@ -3698,7 +3697,7 @@ const sigmoidConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const sinConfig = createUnaryKernelConfig(tfjsCore.Sin);
+var sinConfig = createUnaryKernelConfig(tfjsCore.Sin);
 
 /**
  * @license
@@ -3717,34 +3716,34 @@ const sinConfig = createUnaryKernelConfig(tfjsCore.Sin);
  * =============================================================================
  */
 function slice(args) {
-    const { inputs: { x }, attrs: { begin, size }, backend } = args;
-    const [begin_, size_] = tfjsCore.slice_util.parseSliceParams(x, begin, size);
-    const isContinous = tfjsCore.slice_util.isSliceContinous(x.shape, begin_, size_);
-    const xVals = backend.readSync(x.dataId);
-    const out = backend.makeOutput(size_, x.dtype);
-    const xStrides = tfjsCore.util.computeStrides(x.shape);
-    const outData = backend.dataIdMap.get(out.dataId);
+    var x = args.inputs.x, _a = args.attrs, begin = _a.begin, size = _a.size, backend = args.backend;
+    var _b = tfjsCore.slice_util.parseSliceParams(x, begin, size), begin_ = _b[0], size_ = _b[1];
+    var isContinous = tfjsCore.slice_util.isSliceContinous(x.shape, begin_, size_);
+    var xVals = backend.readSync(x.dataId);
+    var out = backend.makeOutput(size_, x.dtype);
+    var xStrides = tfjsCore.util.computeStrides(x.shape);
+    var outData = backend.dataIdMap.get(out.dataId);
     if (isContinous) {
-        const flatOffset = tfjsCore.slice_util.computeFlatOffset(begin_, xStrides);
+        var flatOffset = tfjsCore.slice_util.computeFlatOffset(begin_, xStrides);
         if (x.dtype === 'string') {
             outData.stringBytes =
                 xVals
                     .slice(flatOffset, flatOffset + tfjsCore.util.sizeFromShape(size_));
         }
         else {
-            const outVals = backend.typedArrayFromHeap(out);
-            outVals.set(xVals
+            var outVals_1 = backend.typedArrayFromHeap(out);
+            outVals_1.set(xVals
                 .subarray(flatOffset, flatOffset + tfjsCore.util.sizeFromShape(size_)));
         }
         return out;
     }
     if (x.dtype === 'string') {
-        const res = sliceImpl(xVals, begin_, size_, x.shape, x.dtype);
+        var res = sliceImpl(xVals, begin_, size_, x.shape, x.dtype);
         outData.stringBytes = res;
         return out;
     }
-    const outVals = backend.typedArrayFromHeap(out);
-    const rank = x.shape.length;
+    var outVals = backend.typedArrayFromHeap(out);
+    var rank = x.shape.length;
     if (rank === 2) {
         slice2d(xVals, xStrides[0], outVals, begin_, size_);
     }
@@ -3755,57 +3754,57 @@ function slice(args) {
         slice4d(xVals, xStrides[0], xStrides[1], xStrides[2], outVals, begin_, size_);
     }
     else {
-        const res = sliceImpl(xVals, begin_, size_, x.shape, x.dtype);
+        var res = sliceImpl(xVals, begin_, size_, x.shape, x.dtype);
         outVals.set(res);
     }
     return out;
 }
 function slice2d(xVals, xStride, outVals, begin, size) {
-    let outOffset = 0;
-    const beginI = begin[0];
-    const beginJ = begin[1];
-    const endI = beginI + size[0];
-    for (let i = beginI; i < endI; i++) {
-        const xOffset = i * xStride + beginJ;
+    var outOffset = 0;
+    var beginI = begin[0];
+    var beginJ = begin[1];
+    var endI = beginI + size[0];
+    for (var i = beginI; i < endI; i++) {
+        var xOffset = i * xStride + beginJ;
         outVals.set(xVals.subarray(xOffset, xOffset + size[1]), outOffset);
         outOffset += size[1];
     }
 }
 function slice3d(xVals, xStride1, xStride2, outVals, begin, size) {
-    let outOffset = 0;
-    const beginI = begin[0];
-    const beginJ = begin[1];
-    const beginK = begin[2];
-    const endI = beginI + size[0];
-    const endJ = beginJ + size[1];
-    for (let i = beginI; i < endI; i++) {
-        for (let j = beginJ; j < endJ; j++) {
-            const xOffset = i * xStride1 + j * xStride2 + beginK;
+    var outOffset = 0;
+    var beginI = begin[0];
+    var beginJ = begin[1];
+    var beginK = begin[2];
+    var endI = beginI + size[0];
+    var endJ = beginJ + size[1];
+    for (var i = beginI; i < endI; i++) {
+        for (var j = beginJ; j < endJ; j++) {
+            var xOffset = i * xStride1 + j * xStride2 + beginK;
             outVals.set(xVals.subarray(xOffset, xOffset + size[2]), outOffset);
             outOffset += size[2];
         }
     }
 }
 function slice4d(xVals, xStride1, xStride2, xStride3, outVals, begin, size) {
-    let outOffset = 0;
-    const beginI = begin[0];
-    const beginJ = begin[1];
-    const beginK = begin[2];
-    const endI = beginI + size[0];
-    const endJ = beginJ + size[1];
-    const endK = beginK + size[2];
-    const beginL = begin[3];
-    for (let i = beginI; i < endI; i++) {
-        for (let j = beginJ; j < endJ; j++) {
-            for (let k = beginK; k < endK; k++) {
-                const xOffset = i * xStride1 + j * xStride2 + k * xStride3 + beginL;
+    var outOffset = 0;
+    var beginI = begin[0];
+    var beginJ = begin[1];
+    var beginK = begin[2];
+    var endI = beginI + size[0];
+    var endJ = beginJ + size[1];
+    var endK = beginK + size[2];
+    var beginL = begin[3];
+    for (var i = beginI; i < endI; i++) {
+        for (var j = beginJ; j < endJ; j++) {
+            for (var k = beginK; k < endK; k++) {
+                var xOffset = i * xStride1 + j * xStride2 + k * xStride3 + beginL;
                 outVals.set(xVals.subarray(xOffset, xOffset + size[3]), outOffset);
                 outOffset += size[3];
             }
         }
     }
 }
-const sliceConfig = {
+var sliceConfig = {
     kernelName: tfjsCore.Slice,
     backendName: 'wasm',
     kernelFunc: slice,
@@ -3827,7 +3826,7 @@ const sliceConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmFunc$7;
+var wasmFunc$7;
 function setup$C(backend) {
     wasmFunc$7 = backend.wasm.cwrap(tfjsCore.Softmax, null /* void */, [
         'number',
@@ -3837,12 +3836,12 @@ function setup$C(backend) {
     ]);
 }
 function softmax(args) {
-    const { backend, inputs: { logits }, attrs: { dim } } = args;
-    const xId = backend.dataIdMap.get(logits.dataId).id;
-    const out = backend.makeOutput(logits.shape, logits.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const channels = logits.shape[dim];
-    const batch = tfjsCore.util.sizeFromShape(logits.shape) / channels;
+    var backend = args.backend, logits = args.inputs.logits, dim = args.attrs.dim;
+    var xId = backend.dataIdMap.get(logits.dataId).id;
+    var out = backend.makeOutput(logits.shape, logits.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var channels = logits.shape[dim];
+    var batch = tfjsCore.util.sizeFromShape(logits.shape) / channels;
     // Short-circuit zero-sized tensors.
     if (tfjsCore.util.sizeFromShape(out.shape) === 0) {
         return out;
@@ -3850,7 +3849,7 @@ function softmax(args) {
     wasmFunc$7(xId, outId, channels, batch);
     return out;
 }
-const softmaxConfig = {
+var softmaxConfig = {
     kernelName: tfjsCore.Softmax,
     backendName: 'wasm',
     setupFunc: setup$C,
@@ -3874,22 +3873,22 @@ const softmaxConfig = {
  * =============================================================================
  */
 function splitV(args) {
-    const { inputs, attrs, backend } = args;
-    const { x } = inputs;
-    const { numOrSizeSplits, axis } = attrs;
-    const $axis = tfjsCore.util.parseAxisParam(axis, x.shape)[0];
-    const splitSizes = tfjsCore.backend_util.prepareSplitSize(x, numOrSizeSplits, $axis);
-    const begin = new Array(x.shape.length).fill(0);
-    const size = x.shape.slice();
-    return splitSizes.map(s => {
-        const xSliceSize = [...size];
+    var inputs = args.inputs, attrs = args.attrs, backend = args.backend;
+    var x = inputs.x;
+    var numOrSizeSplits = attrs.numOrSizeSplits, axis = attrs.axis;
+    var $axis = tfjsCore.util.parseAxisParam(axis, x.shape)[0];
+    var splitSizes = tfjsCore.backend_util.prepareSplitSize(x, numOrSizeSplits, $axis);
+    var begin = new Array(x.shape.length).fill(0);
+    var size = x.shape.slice();
+    return splitSizes.map(function (s) {
+        var xSliceSize = size.slice();
         xSliceSize[$axis] = s;
-        const xSlice = slice({ inputs: { x }, attrs: { begin, size: xSliceSize }, backend });
+        var xSlice = slice({ inputs: { x: x }, attrs: { begin: begin, size: xSliceSize }, backend: backend });
         begin[$axis] += s;
         return xSlice;
     });
 }
-const splitVConfig = {
+var splitVConfig = {
     kernelName: tfjsCore.SplitV,
     backendName: 'wasm',
     kernelFunc: splitV
@@ -3911,7 +3910,7 @@ const splitVConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const sqrtConfig = createUnaryKernelConfig(tfjsCore.Sqrt);
+var sqrtConfig = createUnaryKernelConfig(tfjsCore.Sqrt);
 
 /**
  * @license
@@ -3929,7 +3928,7 @@ const sqrtConfig = createUnaryKernelConfig(tfjsCore.Sqrt);
  * limitations under the License.
  * =============================================================================
  */
-const squareConfig = createUnaryKernelConfig(tfjsCore.Square);
+var squareConfig = createUnaryKernelConfig(tfjsCore.Square);
 
 /**
  * @license
@@ -3947,8 +3946,8 @@ const squareConfig = createUnaryKernelConfig(tfjsCore.Square);
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$e = true;
-const squaredDifferenceConfig = createBinaryKernelConfig(tfjsCore.SquaredDifference, supportsFullBroadcast$e);
+var supportsFullBroadcast$e = true;
+var squaredDifferenceConfig = createBinaryKernelConfig(tfjsCore.SquaredDifference, supportsFullBroadcast$e);
 
 /**
  * @license
@@ -3966,7 +3965,7 @@ const squaredDifferenceConfig = createBinaryKernelConfig(tfjsCore.SquaredDiffere
  * limitations under the License.
  * =============================================================================
  */
-let wasmStep;
+var wasmStep;
 function setup$D(backend) {
     wasmStep = backend.wasm.cwrap(tfjsCore.Step, null /*void*/, [
         'number',
@@ -3975,16 +3974,16 @@ function setup$D(backend) {
     ]);
 }
 function step(args) {
-    const { backend, inputs, attrs } = args;
-    const { alpha } = attrs;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const out = backend.makeOutput(x.shape, x.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var alpha = attrs.alpha;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var out = backend.makeOutput(x.shape, x.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmStep(xId, alpha, outId);
     return out;
 }
-const stepConfig = {
+var stepConfig = {
     kernelName: tfjsCore.Step,
     backendName: 'wasm',
     setupFunc: setup$D,
@@ -4007,7 +4006,7 @@ const stepConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmStridedSlice;
+var wasmStridedSlice;
 function setup$E(backend) {
     wasmStridedSlice = backend.wasm.cwrap(tfjsCore.StridedSlice, null /*void*/, [
         'number',
@@ -4023,14 +4022,14 @@ function setup$E(backend) {
     ]);
 }
 function stridedSlice(args) {
-    const { backend, inputs, attrs } = args;
-    const { x } = inputs;
-    let { begin, end, strides } = attrs;
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var x = inputs.x;
+    var begin = attrs.begin, end = attrs.end, strides = attrs.strides;
     if (strides == null) {
         strides = new Array(begin.length);
     }
-    const { beginMask, endMask, ellipsisMask, newAxisMask, shrinkAxisMask } = attrs;
-    const ellipsisAxes = tfjsCore.backend_util.slice_util.maskToAxes(ellipsisMask);
+    var beginMask = attrs.beginMask, endMask = attrs.endMask, ellipsisMask = attrs.ellipsisMask, newAxisMask = attrs.newAxisMask, shrinkAxisMask = attrs.shrinkAxisMask;
+    var ellipsisAxes = tfjsCore.backend_util.slice_util.maskToAxes(ellipsisMask);
     if (ellipsisAxes.length > 1) {
         throw new Error('Multiple ellipses in slice is not allowed.');
     }
@@ -4040,56 +4039,56 @@ function stridedSlice(args) {
     if (ellipsisMask !== 0 && shrinkAxisMask !== 0) {
         throw new Error('Using both ellipsisMask and shrinkAxisMask is not yet supported.');
     }
-    const numInterpolatedAxes = x.shape.length - begin.length;
+    var numInterpolatedAxes = x.shape.length - begin.length;
     // Expand the dims of x based on the newAxisMask.
-    const expandAxes = tfjsCore.backend_util.slice_util.maskToAxes(newAxisMask);
-    const newShape = x.shape.slice();
-    expandAxes.forEach(axis => {
+    var expandAxes = tfjsCore.backend_util.slice_util.maskToAxes(newAxisMask);
+    var newShape = x.shape.slice();
+    expandAxes.forEach(function (axis) {
         begin[axis] = 0;
         end[axis] = 1;
         newShape.splice(axis, 0, 1);
     });
-    const xReshaped = reshape({ inputs: { x }, attrs: { shape: newShape }, backend });
-    const { begin: normalizedBegin, end: normalizedEnd, strides: normalizedStrides } = tfjsCore.backend_util.slice_util.getNormalizedAxes(xReshaped.shape, ellipsisAxes, numInterpolatedAxes, begin, end, strides, beginMask, endMask, ellipsisMask);
+    var xReshaped = reshape({ inputs: { x: x }, attrs: { shape: newShape }, backend: backend });
+    var _a = tfjsCore.backend_util.slice_util.getNormalizedAxes(xReshaped.shape, ellipsisAxes, numInterpolatedAxes, begin, end, strides, beginMask, endMask, ellipsisMask), normalizedBegin = _a.begin, normalizedEnd = _a.end, normalizedStrides = _a.strides;
     begin = normalizedBegin;
     end = normalizedEnd;
     strides = normalizedStrides;
-    const shrinkAxes = tfjsCore.backend_util.slice_util.maskToAxes(shrinkAxisMask);
+    var shrinkAxes = tfjsCore.backend_util.slice_util.maskToAxes(shrinkAxisMask);
     // Adjust the ends based on the shrink mask.
-    shrinkAxes.forEach(axis => {
+    shrinkAxes.forEach(function (axis) {
         end[axis] = begin[axis] + 1;
         strides[axis] = 1;
     });
     // Figure out the output shape.
-    const size = tfjsCore.backend_util.slice_util.computeOutShape(begin, end, strides);
+    var size = tfjsCore.backend_util.slice_util.computeOutShape(begin, end, strides);
     // Remove the axes based on shrinkMask.
-    const outShape = size.filter((_, axis) => shrinkAxes.indexOf(axis) === -1);
-    const nonStrided = strides.every(v => v === 1);
+    var outShape = size.filter(function (_, axis) { return shrinkAxes.indexOf(axis) === -1; });
+    var nonStrided = strides.every(function (v) { return v === 1; });
     if (nonStrided) {
-        const xSliced = slice({ inputs: { x: xReshaped }, attrs: { begin, size }, backend });
+        var xSliced = slice({ inputs: { x: xReshaped }, attrs: { begin: begin, size: size }, backend: backend });
         backend.disposeData(xReshaped.dataId);
-        const reshaped = reshape({ inputs: { x: xSliced }, attrs: { shape: outShape }, backend });
+        var reshaped_1 = reshape({ inputs: { x: xSliced }, attrs: { shape: outShape }, backend: backend });
         backend.disposeData(xSliced.dataId);
-        return reshaped;
+        return reshaped_1;
     }
-    const out = backend.makeOutput(outShape, 'float32');
-    if (!outShape.some(axis => axis === 0)) {
-        const xId = backend.dataIdMap.get(xReshaped.dataId).id;
-        const xStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(xReshaped.shape)).buffer);
-        const beginBytes = new Uint8Array(new Int32Array(begin).buffer);
-        const endBytes = new Uint8Array(new Int32Array(end).buffer);
-        const stridesBytes = new Uint8Array(new Int32Array(strides).buffer);
-        const outputShapeBytes = new Uint8Array(new Int32Array(outShape).buffer);
-        const outStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(outShape)).buffer);
-        const outId = backend.dataIdMap.get(out.dataId).id;
+    var out = backend.makeOutput(outShape, 'float32');
+    if (!outShape.some(function (axis) { return axis === 0; })) {
+        var xId = backend.dataIdMap.get(xReshaped.dataId).id;
+        var xStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(xReshaped.shape)).buffer);
+        var beginBytes = new Uint8Array(new Int32Array(begin).buffer);
+        var endBytes = new Uint8Array(new Int32Array(end).buffer);
+        var stridesBytes = new Uint8Array(new Int32Array(strides).buffer);
+        var outputShapeBytes = new Uint8Array(new Int32Array(outShape).buffer);
+        var outStridesBytes = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(outShape)).buffer);
+        var outId = backend.dataIdMap.get(out.dataId).id;
         wasmStridedSlice(xId, xStridesBytes, xReshaped.shape.length, beginBytes, endBytes, stridesBytes, outputShapeBytes, outStridesBytes, outShape.length, outId);
     }
     backend.disposeData(xReshaped.dataId);
-    const reshaped = reshape({ inputs: { x: out }, attrs: { shape: outShape }, backend });
+    var reshaped = reshape({ inputs: { x: out }, attrs: { shape: outShape }, backend: backend });
     backend.disposeData(out.dataId);
     return reshaped;
 }
-const stridedSliceConfig = {
+var stridedSliceConfig = {
     kernelName: tfjsCore.StridedSlice,
     backendName: 'wasm',
     setupFunc: setup$E,
@@ -4112,8 +4111,8 @@ const stridedSliceConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const supportsFullBroadcast$f = true;
-const subConfig = createBinaryKernelConfig(tfjsCore.Sub, supportsFullBroadcast$f);
+var supportsFullBroadcast$f = true;
+var subConfig = createBinaryKernelConfig(tfjsCore.Sub, supportsFullBroadcast$f);
 
 /**
  * @license
@@ -4131,21 +4130,21 @@ const subConfig = createBinaryKernelConfig(tfjsCore.Sub, supportsFullBroadcast$f
  * limitations under the License.
  * =============================================================================
  */
-let wasmSum;
+var wasmSum;
 function setup$F(backend) {
     wasmSum = backend.wasm.cwrap(tfjsCore.Sum, null /*void*/, ['number, number, number']);
 }
 function sum(args) {
-    const { backend, inputs, attrs } = args;
-    const { axis, keepDims } = attrs;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    let inputId = xId;
-    let input = x;
-    const { transposed, axes, originalAxes, inputWasTransposed } = permuteAxesAndTranspose(x, axis, backend);
-    let reductionAxes = axes;
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var axis = attrs.axis, keepDims = attrs.keepDims;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var inputId = xId;
+    var input = x;
+    var _a = permuteAxesAndTranspose(x, axis, backend), transposed = _a.transposed, axes = _a.axes, originalAxes = _a.originalAxes, inputWasTransposed = _a.inputWasTransposed;
+    var reductionAxes = axes;
     if (inputWasTransposed) {
-        const transposedId = backend.dataIdMap.get(transposed.dataId).id;
+        var transposedId = backend.dataIdMap.get(transposed.dataId).id;
         if (transposedId !== xId) {
             // transpose was not a no-op. We will need to dispose of this
             // once we are done.
@@ -4155,11 +4154,11 @@ function sum(args) {
         }
     }
     tfjsCore.backend_util.assertAxesAreInnerMostDims('sum', reductionAxes, input.shape.length);
-    const [outShape, reduceShape] = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, reductionAxes);
-    const reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
-    const out = backend.makeOutput(outShape, input.dtype);
+    var _b = tfjsCore.backend_util.computeOutAndReduceShapes(input.shape, reductionAxes), outShape = _b[0], reduceShape = _b[1];
+    var reduceSize = tfjsCore.util.sizeFromShape(reduceShape);
+    var out = backend.makeOutput(outShape, input.dtype);
     if (tfjsCore.util.sizeFromShape(input.shape) !== 0) {
-        const outId = backend.dataIdMap.get(out.dataId).id;
+        var outId = backend.dataIdMap.get(out.dataId).id;
         wasmSum(inputId, reduceSize, outId);
     }
     if (inputWasTransposed) {
@@ -4168,12 +4167,12 @@ function sum(args) {
     }
     if (keepDims) {
         // reshape
-        const newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
+        var newShape = tfjsCore.backend_util.expandShapeToKeepDim(out.shape, originalAxes);
         out.shape = newShape;
     }
     return out;
 }
-const sumConfig = {
+var sumConfig = {
     kernelName: tfjsCore.Sum,
     backendName: 'wasm',
     setupFunc: setup$F,
@@ -4196,7 +4195,7 @@ const sumConfig = {
  * limitations under the License.
  * =============================================================================
  */
-const tanConfig = createUnaryKernelConfig(tfjsCore.Tan);
+var tanConfig = createUnaryKernelConfig(tfjsCore.Tan);
 
 /**
  * @license
@@ -4214,7 +4213,7 @@ const tanConfig = createUnaryKernelConfig(tfjsCore.Tan);
  * limitations under the License.
  * =============================================================================
  */
-const tanhConfig = createUnaryKernelConfig(tfjsCore.Tanh);
+var tanhConfig = createUnaryKernelConfig(tfjsCore.Tanh);
 
 /**
  * @license
@@ -4232,7 +4231,7 @@ const tanhConfig = createUnaryKernelConfig(tfjsCore.Tanh);
  * limitations under the License.
  * =============================================================================
  */
-let wasmTile;
+var wasmTile;
 function setup$G(backend) {
     wasmTile = backend.wasm.cwrap(tfjsCore.Tile, null /* void */, [
         'number',
@@ -4244,22 +4243,22 @@ function setup$G(backend) {
     ]);
 }
 function tile(args) {
-    const { inputs, backend, attrs } = args;
-    const { x } = inputs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const { reps } = attrs;
-    const newShape = new Array(x.shape.length);
-    for (let i = 0; i < newShape.length; i++) {
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var x = inputs.x;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var reps = attrs.reps;
+    var newShape = new Array(x.shape.length);
+    for (var i = 0; i < newShape.length; i++) {
         newShape[i] = x.shape[i] * reps[i];
     }
-    const xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
-    const newShapeBytes = new Uint8Array(new Int32Array(newShape).buffer);
-    const out = backend.makeOutput(newShape, x.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
+    var xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
+    var newShapeBytes = new Uint8Array(new Int32Array(newShape).buffer);
+    var out = backend.makeOutput(newShape, x.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
     wasmTile(xId, xShapeBytes, x.shape.length, newShapeBytes, newShape.length, CppDType[out.dtype], outId);
     return out;
 }
-const tileConfig = {
+var tileConfig = {
     kernelName: tfjsCore.Tile,
     backendName: 'wasm',
     setupFunc: setup$G,
@@ -4282,7 +4281,7 @@ const tileConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmTopK;
+var wasmTopK;
 function setup$H(backend) {
     wasmTopK = backend.wasm.cwrap(tfjsCore.TopK, null /* void */, [
         'number',
@@ -4295,21 +4294,22 @@ function setup$H(backend) {
         'number',
     ]);
 }
-const topk = ({ inputs, backend, attrs }) => {
-    const { x } = inputs;
-    const { k, sorted } = attrs;
-    const xId = backend.dataIdMap.get(x.dataId).id;
-    const xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
-    const outputShape = x.shape.slice();
+var topk = function (_a) {
+    var inputs = _a.inputs, backend = _a.backend, attrs = _a.attrs;
+    var x = inputs.x;
+    var k = attrs.k, sorted = attrs.sorted;
+    var xId = backend.dataIdMap.get(x.dataId).id;
+    var xShapeBytes = new Uint8Array(new Int32Array(x.shape).buffer);
+    var outputShape = x.shape.slice();
     outputShape[outputShape.length - 1] = k;
-    const outValues = backend.makeOutput(outputShape, x.dtype);
-    const outValuesId = backend.dataIdMap.get(outValues.dataId).id;
-    const outIndices = backend.makeOutput(outputShape, 'int32');
-    const outIndicesId = backend.dataIdMap.get(outIndices.dataId).id;
+    var outValues = backend.makeOutput(outputShape, x.dtype);
+    var outValuesId = backend.dataIdMap.get(outValues.dataId).id;
+    var outIndices = backend.makeOutput(outputShape, 'int32');
+    var outIndicesId = backend.dataIdMap.get(outIndices.dataId).id;
     wasmTopK(xId, xShapeBytes, x.shape.length, CppDType[x.dtype], k, sorted, outValuesId, outIndicesId);
     return [outValues, outIndices];
 };
-const topKConfig = {
+var topKConfig = {
     kernelName: tfjsCore.TopK,
     backendName: 'wasm',
     setupFunc: setup$H,
@@ -4332,7 +4332,7 @@ const topKConfig = {
  * limitations under the License.
  * =============================================================================
  */
-let wasmTransform;
+var wasmTransform;
 function setup$I(backend) {
     wasmTransform = backend.wasm.cwrap(tfjsCore.Transform, null /*void*/, [
         'number',
@@ -4353,22 +4353,22 @@ function setup$I(backend) {
     ]);
 }
 function transform(args) {
-    const { backend, inputs, attrs } = args;
-    const { image, transforms } = inputs;
-    const { interpolation, fillMode, fillValue, outputShape } = attrs;
-    const [batch, imageHeight, imageWidth, numChannels] = image.shape;
-    const [outHeight, outWidth] = outputShape != null ? outputShape : [imageHeight, imageWidth];
-    const outShape = [batch, outHeight, outWidth,
+    var backend = args.backend, inputs = args.inputs, attrs = args.attrs;
+    var image = inputs.image, transforms = inputs.transforms;
+    var interpolation = attrs.interpolation, fillMode = attrs.fillMode, fillValue = attrs.fillValue, outputShape = attrs.outputShape;
+    var _a = image.shape, batch = _a[0], imageHeight = _a[1], imageWidth = _a[2], numChannels = _a[3];
+    var _b = outputShape != null ? outputShape : [imageHeight, imageWidth], outHeight = _b[0], outWidth = _b[1];
+    var outShape = [batch, outHeight, outWidth,
         numChannels];
-    const strides = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(image.shape)).buffer);
-    const out = backend.makeOutput(outShape, image.dtype);
-    const outId = backend.dataIdMap.get(out.dataId).id;
-    const imageData = backend.dataIdMap.get(image.dataId);
-    const imageId = imageData.id;
-    const transformsData = backend.dataIdMap.get(transforms.dataId);
-    const transformsId = transformsData.id;
-    const interpolationModeId = interpolation === 'nearest' ? 1 : 2;
-    let fillModeId;
+    var strides = new Uint8Array(new Int32Array(tfjsCore.util.computeStrides(image.shape)).buffer);
+    var out = backend.makeOutput(outShape, image.dtype);
+    var outId = backend.dataIdMap.get(out.dataId).id;
+    var imageData = backend.dataIdMap.get(image.dataId);
+    var imageId = imageData.id;
+    var transformsData = backend.dataIdMap.get(transforms.dataId);
+    var transformsId = transformsData.id;
+    var interpolationModeId = interpolation === 'nearest' ? 1 : 2;
+    var fillModeId;
     switch (fillMode) {
         case 'constant':
             fillModeId = 1;
@@ -4389,7 +4389,7 @@ function transform(args) {
     wasmTransform(imageId, transformsId, (transforms.shape[0] > 1), batch, outHeight, outWidth, numChannels, imageWidth, imageHeight, strides, image.shape.length - 1, interpolationModeId, fillModeId, fillValue, outId);
     return out;
 }
-const transformConfig = {
+var transformConfig = {
     kernelName: tfjsCore.Transform,
     backendName: 'wasm',
     setupFunc: setup$I,
@@ -4413,32 +4413,35 @@ const transformConfig = {
  * =============================================================================
  */
 function unpack(args) {
-    const { inputs, backend, attrs } = args;
-    const { value } = inputs;
-    let { axis } = attrs;
+    var inputs = args.inputs, backend = args.backend, attrs = args.attrs;
+    var value = inputs.value;
+    var axis = attrs.axis;
     if (axis < 0) {
         axis += value.shape.length;
     }
-    const numOutputs = value.shape[axis];
-    const rank = value.shape.length;
-    const outShape = new Array(rank - 1);
-    let outIndex = 0;
-    for (let i = 0; i < rank; i++) {
+    var numOutputs = value.shape[axis];
+    var rank = value.shape.length;
+    var outShape = new Array(rank - 1);
+    var outIndex = 0;
+    for (var i = 0; i < rank; i++) {
         if (i !== axis) {
             outShape[outIndex++] = value.shape[i];
         }
     }
-    const outs = new Array(numOutputs);
-    const begin = new Array(rank).fill(0);
-    const size = value.shape.slice();
+    var outs = new Array(numOutputs);
+    var begin = new Array(rank).fill(0);
+    var size = value.shape.slice();
     size[axis] = 1;
-    for (let i = 0; i < outs.length; i++) {
+    for (var i = 0; i < outs.length; i++) {
         begin[axis] = i;
-        outs[i] = slice({ inputs: { x: value }, attrs: { begin, size }, backend });
+        outs[i] = slice({ inputs: { x: value }, attrs: { begin: begin, size: size }, backend: backend });
     }
-    return outs.map(({ dataId, dtype }) => ({ dataId, dtype, shape: outShape }));
+    return outs.map(function (_a) {
+        var dataId = _a.dataId, dtype = _a.dtype;
+        return ({ dataId: dataId, dtype: dtype, shape: outShape });
+    });
 }
-const unpackConfig = {
+var unpackConfig = {
     kernelName: tfjsCore.Unpack,
     backendName: 'wasm',
     kernelFunc: unpack,
@@ -4461,13 +4464,13 @@ const unpackConfig = {
  * =============================================================================
  */
 function zerosLike(args) {
-    const { inputs: { x }, backend } = args;
-    const out = backend.makeOutput(x.shape, x.dtype);
-    const outVals = backend.typedArrayFromHeap(out);
+    var x = args.inputs.x, backend = args.backend;
+    var out = backend.makeOutput(x.shape, x.dtype);
+    var outVals = backend.typedArrayFromHeap(out);
     outVals.fill(0);
     return out;
 }
-const zerosLikeConfig = {
+var zerosLikeConfig = {
     kernelName: tfjsCore.ZerosLike,
     backendName: 'wasm',
     kernelFunc: zerosLike,
@@ -4490,7 +4493,7 @@ const zerosLikeConfig = {
  * =============================================================================
  */
 // List all kernel configs here
-const kernelConfigs = [
+var kernelConfigs = [
     absConfig,
     addConfig,
     addNConfig,
@@ -4584,7 +4587,8 @@ const kernelConfigs = [
     unpackConfig,
     zerosLikeConfig
 ];
-for (const kernelConfig of kernelConfigs) {
+for (var _i = 0, kernelConfigs_1 = kernelConfigs; _i < kernelConfigs_1.length; _i++) {
+    var kernelConfig = kernelConfigs_1[_i];
     tfjsCore.registerKernel(kernelConfig);
 }
 
@@ -4602,6 +4606,20 @@ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
+/* global Reflect, Promise */
+
+var extendStatics = function(d, b) {
+    extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return extendStatics(d, b);
+};
+
+function __extends(d, b) {
+    extendStatics(d, b);
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
 
 function __awaiter(thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -4611,6 +4629,34 @@ function __awaiter(thisArg, _arguments, P, generator) {
         function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
+}
+
+function __generator(thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
 }
 
 /**
@@ -4629,7 +4675,8 @@ function __awaiter(thisArg, _arguments, P, generator) {
  * limitations under the License.
  * =============================================================================
  */
-const ENV = tfjsCore.env();
+var _this = undefined;
+var ENV = tfjsCore.env();
 /**
  * True if SIMD is supported.
  */
@@ -4638,37 +4685,42 @@ ENV.registerFlag(
 // This typed array passed in to WXWebAssembly.validate is WebAssembly binary
 // code. In this case it is a small program that contains SIMD
 // instructions.
-'WASM_HAS_SIMD_SUPPORT', () => __awaiter(undefined, void 0, void 0, function* () {
-    return WXWebAssembly.validate(new Uint8Array([
-        0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3,
-        2, 1, 0, 10, 9, 1, 7, 0, 65, 0, 253, 15, 26, 11
-    ]));
-}));
+'WASM_HAS_SIMD_SUPPORT', function () { return __awaiter(_this, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        return [2 /*return*/, WXWebAssembly.validate(new Uint8Array([
+                0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3,
+                2, 1, 0, 10, 9, 1, 7, 0, 65, 0, 253, 15, 26, 11
+            ]))];
+    });
+}); });
 /**
  * True if threads are supported.
  */
 // From: https://github.com/GoogleChromeLabs/wasm-feature-detect
-ENV.registerFlag('WASM_HAS_MULTITHREAD_SUPPORT', () => __awaiter(undefined, void 0, void 0, function* () {
-    // TODO(annxingyuan): Enable node support once this is resolved:
-    // https://github.com/tensorflow/tfjs/issues/3830
-    if (ENV.get('IS_NODE')) {
-        return false;
-    }
-    try {
-        // Test for transferability of SABs (needed for Firefox)
-        // https://groups.google.com/forum/#!msg/mozilla.dev.platform/IHkBZlHETpA/dwsMNchWEQAJ
-        new MessageChannel().port1.postMessage(new SharedArrayBuffer(1));
-        // This typed array is a WebAssembly program containing threaded
-        // instructions.
-        return WXWebAssembly.validate(new Uint8Array([
-            0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 5,
-            4, 1, 3, 1, 1, 10, 11, 1, 9, 0, 65, 0, 254, 16, 2, 0, 26, 11
-        ]));
-    }
-    catch (e) {
-        return false;
-    }
-}));
+ENV.registerFlag('WASM_HAS_MULTITHREAD_SUPPORT', function () { return __awaiter(_this, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        // TODO(annxingyuan): Enable node support once this is resolved:
+        // https://github.com/tensorflow/tfjs/issues/3830
+        if (ENV.get('IS_NODE')) {
+            return [2 /*return*/, false];
+        }
+        try {
+            // Test for transferability of SABs (needed for Firefox)
+            // https://groups.google.com/forum/#!msg/mozilla.dev.platform/IHkBZlHETpA/dwsMNchWEQAJ
+            new MessageChannel().port1.postMessage(new SharedArrayBuffer(1));
+            // This typed array is a WebAssembly program containing threaded
+            // instructions.
+            return [2 /*return*/, WXWebAssembly.validate(new Uint8Array([
+                    0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 5,
+                    4, 1, 3, 1, 1, 10, 11, 1, 9, 0, 65, 0, 254, 16, 2, 0, 26, 11
+                ]))];
+        }
+        catch (e) {
+            return [2 /*return*/, false];
+        }
+        return [2 /*return*/];
+    });
+}); });
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -4714,69 +4766,77 @@ var Module=typeof WasmBackendModule!=="undefined"?WasmBackendModule:{};var ready
 module.exports = WasmBackendModule;
 });
 
-class BackendWasm extends tfjsCore.KernelBackend {
-    constructor(wasm) {
-        super();
-        this.wasm = wasm;
+var BackendWasm = /** @class */ (function (_super) {
+    __extends(BackendWasm, _super);
+    function BackendWasm(wasm) {
+        var _this = _super.call(this) || this;
+        _this.wasm = wasm;
         // 0 is reserved for null data ids.
-        this.dataIdNextNumber = 1;
-        this.wasm.tfjs.init();
-        this.dataIdMap = new tfjsCore.DataStorage(this, tfjsCore.engine());
+        _this.dataIdNextNumber = 1;
+        _this.wasm.tfjs.init();
+        _this.dataIdMap = new tfjsCore.DataStorage(_this, tfjsCore.engine());
+        return _this;
     }
-    write(values, shape, dtype) {
-        const dataId = { id: this.dataIdNextNumber++ };
+    BackendWasm.prototype.write = function (values, shape, dtype) {
+        var dataId = { id: this.dataIdNextNumber++ };
         this.move(dataId, values, shape, dtype, 1);
         return dataId;
-    }
-    numDataIds() {
+    };
+    BackendWasm.prototype.numDataIds = function () {
         return this.dataIdMap.numDataIds();
-    }
-    time(f) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const start = tfjsCore.util.now();
-            f();
-            const kernelMs = tfjsCore.util.now() - start;
-            return { kernelMs };
+    };
+    BackendWasm.prototype.time = function (f) {
+        return __awaiter(this, void 0, void 0, function () {
+            var start, kernelMs;
+            return __generator(this, function (_a) {
+                start = tfjsCore.util.now();
+                f();
+                kernelMs = tfjsCore.util.now() - start;
+                return [2 /*return*/, { kernelMs: kernelMs }];
+            });
         });
-    }
-    move(dataId, values, shape, dtype, refCount) {
-        const id = this.dataIdNextNumber++;
+    };
+    BackendWasm.prototype.move = function (dataId, values, shape, dtype, refCount) {
+        var id = this.dataIdNextNumber++;
         if (dtype === 'string') {
-            const stringBytes = values;
-            this.dataIdMap.set(dataId, { id, stringBytes, shape, dtype, memoryOffset: null, refCount });
+            var stringBytes = values;
+            this.dataIdMap.set(dataId, { id: id, stringBytes: stringBytes, shape: shape, dtype: dtype, memoryOffset: null, refCount: refCount });
             return;
         }
-        const size = tfjsCore.util.sizeFromShape(shape);
-        const numBytes = size * tfjsCore.util.bytesPerElement(dtype);
-        const memoryOffset = this.wasm._malloc(numBytes);
-        this.dataIdMap.set(dataId, { id, memoryOffset, shape, dtype, refCount });
+        var size = tfjsCore.util.sizeFromShape(shape);
+        var numBytes = size * tfjsCore.util.bytesPerElement(dtype);
+        var memoryOffset = this.wasm._malloc(numBytes);
+        this.dataIdMap.set(dataId, { id: id, memoryOffset: memoryOffset, shape: shape, dtype: dtype, refCount: refCount });
         this.wasm.tfjs.registerTensor(id, size, memoryOffset);
         if (values != null) {
             this.wasm.HEAPU8.set(new Uint8Array(values.buffer, values.byteOffset, numBytes), memoryOffset);
         }
-    }
-    read(dataId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.readSync(dataId);
+    };
+    BackendWasm.prototype.read = function (dataId) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, this.readSync(dataId)];
+            });
         });
-    }
-    readSync(dataId) {
-        const { memoryOffset, dtype, shape, stringBytes } = this.dataIdMap.get(dataId);
+    };
+    BackendWasm.prototype.readSync = function (dataId) {
+        var _a = this.dataIdMap.get(dataId), memoryOffset = _a.memoryOffset, dtype = _a.dtype, shape = _a.shape, stringBytes = _a.stringBytes;
         if (dtype === 'string') {
             return stringBytes;
         }
-        const bytes = this.wasm.HEAPU8.slice(memoryOffset, memoryOffset + tfjsCore.util.sizeFromShape(shape) * tfjsCore.util.bytesPerElement(dtype));
+        var bytes = this.wasm.HEAPU8.slice(memoryOffset, memoryOffset + tfjsCore.util.sizeFromShape(shape) * tfjsCore.util.bytesPerElement(dtype));
         return typedArrayFromBuffer(bytes.buffer, dtype);
-    }
+    };
     /**
      * Dispose the memory if the dataId has 0 refCount. Return true if the memory
      * is released, false otherwise.
      * @param dataId
      * @oaram force Optional, remove the data regardless of refCount
      */
-    disposeData(dataId, force = false) {
+    BackendWasm.prototype.disposeData = function (dataId, force) {
+        if (force === void 0) { force = false; }
         if (this.dataIdMap.has(dataId)) {
-            const data = this.dataIdMap.get(dataId);
+            var data = this.dataIdMap.get(dataId);
             data.refCount--;
             if (!force && data.refCount > 0) {
                 return false;
@@ -4786,63 +4846,64 @@ class BackendWasm extends tfjsCore.KernelBackend {
             this.dataIdMap.delete(dataId);
         }
         return true;
-    }
+    };
     /** Return refCount of a `TensorData`. */
-    refCount(dataId) {
+    BackendWasm.prototype.refCount = function (dataId) {
         if (this.dataIdMap.has(dataId)) {
-            const tensorData = this.dataIdMap.get(dataId);
+            var tensorData = this.dataIdMap.get(dataId);
             return tensorData.refCount;
         }
         return 0;
-    }
-    incRef(dataId) {
-        const data = this.dataIdMap.get(dataId);
+    };
+    BackendWasm.prototype.incRef = function (dataId) {
+        var data = this.dataIdMap.get(dataId);
         if (data != null) {
             data.refCount++;
         }
-    }
-    floatPrecision() {
+    };
+    BackendWasm.prototype.floatPrecision = function () {
         return 32;
-    }
+    };
     // Returns the memory offset of a tensor. Useful for debugging and unit
     // testing.
-    getMemoryOffset(dataId) {
+    BackendWasm.prototype.getMemoryOffset = function (dataId) {
         return this.dataIdMap.get(dataId).memoryOffset;
-    }
-    dispose() {
+    };
+    BackendWasm.prototype.dispose = function () {
         this.wasm.tfjs.dispose();
         if ('PThread' in this.wasm) {
             this.wasm.PThread.terminateAllThreads();
         }
         this.wasm = null;
-    }
-    memory() {
+    };
+    BackendWasm.prototype.memory = function () {
         return { unreliable: false };
-    }
+    };
     /**
      * Make a tensor info for the output of an op. If `memoryOffset` is not
      * present, this method allocates memory on the WASM heap. If `memoryOffset`
      * is present, the memory was allocated elsewhere (in c++) and we just record
      * the pointer where that memory lives.
      */
-    makeOutput(shape, dtype, memoryOffset) {
-        let dataId;
+    BackendWasm.prototype.makeOutput = function (shape, dtype, memoryOffset) {
+        var dataId;
         if (memoryOffset == null) {
             dataId = this.write(null /* values */, shape, dtype);
         }
         else {
-            const id = this.dataIdNextNumber++;
-            dataId = { id };
-            this.dataIdMap.set(dataId, { id, memoryOffset, shape, dtype, refCount: 1 });
-            const size = tfjsCore.util.sizeFromShape(shape);
+            var id = this.dataIdNextNumber++;
+            dataId = { id: id };
+            this.dataIdMap.set(dataId, { id: id, memoryOffset: memoryOffset, shape: shape, dtype: dtype, refCount: 1 });
+            var size = tfjsCore.util.sizeFromShape(shape);
             this.wasm.tfjs.registerTensor(id, size, memoryOffset);
         }
-        return { dataId, shape, dtype };
-    }
-    typedArrayFromHeap({ shape, dtype, dataId }) {
-        const buffer = this.wasm.HEAPU8.buffer;
-        const { memoryOffset } = this.dataIdMap.get(dataId);
-        const size = tfjsCore.util.sizeFromShape(shape);
+        return { dataId: dataId, shape: shape, dtype: dtype };
+    };
+    BackendWasm.prototype.typedArrayFromHeap = function (_a) {
+        var shape = _a.shape, dtype = _a.dtype, dataId = _a.dataId;
+        var buffer = this.wasm.HEAPU8.buffer;
+        var memoryOffset = this.dataIdMap.get(dataId).memoryOffset;
+        var size = tfjsCore.util.sizeFromShape(shape);
         switch (dtype) {
             case 'float32':
                 return new Float32Array(buffer, memoryOffset, size);
@@ -4851,10 +4912,11 @@ class BackendWasm extends tfjsCore.KernelBackend {
             case 'bool':
                 return new Uint8Array(buffer, memoryOffset, size);
             default:
-                throw new Error(`Unknown dtype ${dtype}`);
+                throw new Error("Unknown dtype " + dtype);
         }
-    }
-}
+    };
+    return BackendWasm;
+}(tfjsCore.KernelBackend));
 function createInstantiateWasmFunc(path) {
   return function (imports, callback) {
     WXWebAssembly.instantiate(path, imports).then(function (output) {
@@ -4875,7 +4937,7 @@ function getPathToWasmBinary(simdSupported, threadsSupported, wasmModuleFolder) 
         // the vanilla .wasm binary.
         return wasmPath;
     }
-    let path = 'tfjs-backend-wasm.wasm';
+    var path = 'tfjs-backend-wasm.wasm';
     if (simdSupported && threadsSupported) {
         path = 'tfjs-backend-wasm-threaded-simd.wasm';
     }
@@ -4897,82 +4959,89 @@ function getPathToWasmBinary(simdSupported, threadsSupported, wasmModuleFolder) 
  * in Chrome 76).
  */
 function init() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const [simdSupported, threadsSupported] = yield Promise.all([
-            tfjsCore.env().getAsync('WASM_HAS_SIMD_SUPPORT'),
-            tfjsCore.env().getAsync('WASM_HAS_MULTITHREAD_SUPPORT')
-        ]);
-        return new Promise((resolve, reject) => {
-            const factoryConfig = {};
-            /**
-             * This function overrides the Emscripten module locateFile utility.
-             * @param path The relative path to the file that needs to be loaded.
-             * @param prefix The path to the main JavaScript file's directory.
-             */
-            factoryConfig.locateFile = (path, prefix) => {
-                if (path.endsWith('.worker.js')) {
-                    const response = wasmWorkerContents;
-                    const blob = new Blob([response], { type: 'application/javascript' });
-                    return URL.createObjectURL(blob);
-                }
-                if (path.endsWith('.wasm')) {
-                    return getPathToWasmBinary(simdSupported, threadsSupported, wasmPathPrefix != null ? wasmPathPrefix : prefix);
-                }
-                return prefix + path;
-            };
-            // Use the instantiateWasm override when system fetch is not available.
-            // Reference:
-            // https://github.com/emscripten-core/emscripten/blob/2bca083cbbd5a4133db61fbd74d04f7feecfa907/tests/manual_wasm_instantiate.html#L170
-            if (customFetch) {
-                factoryConfig.instantiateWasm =
-                    createInstantiateWasmFunc(getPathToWasmBinary(simdSupported, threadsSupported, wasmPathPrefix != null ? wasmPathPrefix : ''));
+    return __awaiter(this, void 0, void 0, function () {
+        var _a, simdSupported, threadsSupported;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0: return [4 /*yield*/, Promise.all([
+                        tfjsCore.env().getAsync('WASM_HAS_SIMD_SUPPORT'),
+                        tfjsCore.env().getAsync('WASM_HAS_MULTITHREAD_SUPPORT')
+                    ])];
+                case 1:
+                    _a = _b.sent(), simdSupported = _a[0], threadsSupported = _a[1];
+                    return [2 /*return*/, new Promise(function (resolve, reject) {
+                            var factoryConfig = {};
+                            /**
+                             * This function overrides the Emscripten module locateFile utility.
+                             * @param path The relative path to the file that needs to be loaded.
+                             * @param prefix The path to the main JavaScript file's directory.
+                             */
+                            factoryConfig.locateFile = function (path, prefix) {
+                                if (path.endsWith('.worker.js')) {
+                                    var response = wasmWorkerContents;
+                                    var blob = new Blob([response], { type: 'application/javascript' });
+                                    return URL.createObjectURL(blob);
+                                }
+                                if (path.endsWith('.wasm')) {
+                                    return getPathToWasmBinary(simdSupported, threadsSupported, wasmPathPrefix != null ? wasmPathPrefix : prefix);
+                                }
+                                return prefix + path;
+                            };
+                            // Use the instantiateWasm override when system fetch is not available.
+                            // Reference:
+                            // https://github.com/emscripten-core/emscripten/blob/2bca083cbbd5a4133db61fbd74d04f7feecfa907/tests/manual_wasm_instantiate.html#L170
+                            if (customFetch) {
+                                factoryConfig.instantiateWasm =
+                                    createInstantiateWasmFunc(getPathToWasmBinary(simdSupported, threadsSupported, wasmPathPrefix != null ? wasmPathPrefix : ''));
+                            }
+                            var initialized = false;
+                            factoryConfig.onAbort = function () {
+                                if (initialized) {
+                                    // Emscripten already called console.warn so no need to double log.
+                                    return;
+                                }
+                                if (initAborted) {
+                                    // Emscripten calls `onAbort` twice, resulting in double error
+                                    // messages.
+                                    return;
+                                }
+                                initAborted = true;
+                                var rejectMsg = 'Make sure the server can serve the `.wasm` file relative to the ' +
+                                    'bundled js file. For more details see https://github.com/tensorflow/tfjs/blob/master/tfjs-backend-wasm/README.md#using-bundlers';
+                                reject({ message: rejectMsg });
+                            };
+                            var wasm;
+                            // If `wasmPath` has been defined we must initialize the vanilla module.
+                            if (threadsSupported && simdSupported && wasmPath == null) {
+                                factoryConfig.mainScriptUrlOrBlob = new Blob(["var WasmBackendModuleThreadedSimd = " +
+                                        tfjsBackendWasmThreadedSimd.toString()], { type: 'text/javascript' });
+                                wasm = tfjsBackendWasmThreadedSimd(factoryConfig);
+                            }
+                            else {
+                                // The wasmFactory works for both vanilla and SIMD binaries.
+                                wasm = tfjsBackendWasm(factoryConfig);
+                            }
+                            // The WASM module has been successfully created by the factory.
+                            // Any error will be caught by the onAbort callback defined above.
+                            wasm.then(function (module) {
+                                initialized = true;
+                                initAborted = false;
+                                var voidReturnType = null;
+                                // Using the tfjs namespace to avoid conflict with emscripten's API.
+                                module.tfjs = {
+                                    init: module.cwrap('init', null, []),
+                                    registerTensor: module.cwrap('register_tensor', null, [
+                                        'number',
+                                        'number',
+                                        'number',
+                                    ]),
+                                    disposeData: module.cwrap('dispose_data', voidReturnType, ['number']),
+                                    dispose: module.cwrap('dispose', voidReturnType, []),
+                                };
+                                resolve({ wasm: module });
+                            });
+                        })];
             }
-            let initialized = false;
-            factoryConfig.onAbort = () => {
-                if (initialized) {
-                    // Emscripten already called console.warn so no need to double log.
-                    return;
-                }
-                if (initAborted) {
-                    // Emscripten calls `onAbort` twice, resulting in double error
-                    // messages.
-                    return;
-                }
-                initAborted = true;
-                const rejectMsg = 'Make sure the server can serve the `.wasm` file relative to the ' +
-                    'bundled js file. For more details see https://github.com/tensorflow/tfjs/blob/master/tfjs-backend-wasm/README.md#using-bundlers';
-                reject({ message: rejectMsg });
-            };
-            let wasm;
-            // If `wasmPath` has been defined we must initialize the vanilla module.
-            if (threadsSupported && simdSupported && wasmPath == null) {
-                factoryConfig.mainScriptUrlOrBlob = new Blob([`var WasmBackendModuleThreadedSimd = ` +
-                        tfjsBackendWasmThreadedSimd.toString()], { type: 'text/javascript' });
-                wasm = tfjsBackendWasmThreadedSimd(factoryConfig);
-            }
-            else {
-                // The wasmFactory works for both vanilla and SIMD binaries.
-                wasm = tfjsBackendWasm(factoryConfig);
-            }
-            // The WASM module has been successfully created by the factory.
-            // Any error will be caught by the onAbort callback defined above.
-            wasm.then((module) => {
-                initialized = true;
-                initAborted = false;
-                const voidReturnType = null;
-                // Using the tfjs namespace to avoid conflict with emscripten's API.
-                module.tfjs = {
-                    init: module.cwrap('init', null, []),
-                    registerTensor: module.cwrap('register_tensor', null, [
-                        'number',
-                        'number',
-                        'number',
-                    ]),
-                    disposeData: module.cwrap('dispose_data', voidReturnType, ['number']),
-                    dispose: module.cwrap('dispose', voidReturnType, []),
-                };
-                resolve({ wasm: module });
-            });
         });
     });
 }
@@ -4985,18 +5054,18 @@ function typedArrayFromBuffer(buffer, dtype) {
         case 'bool':
             return new Uint8Array(buffer);
         default:
-            throw new Error(`Unknown dtype ${dtype}`);
+            throw new Error("Unknown dtype " + dtype);
     }
 }
-const wasmBinaryNames = [
+var wasmBinaryNames = [
     'tfjs-backend-wasm.wasm', 'tfjs-backend-wasm-simd.wasm',
     'tfjs-backend-wasm-threaded-simd.wasm'
 ];
-let wasmPath = null;
-let wasmPathPrefix = null;
-let wasmFileMap = {};
-let initAborted = false;
-let customFetch = false;
+var wasmPath = null;
+var wasmPathPrefix = null;
+var wasmFileMap = {};
+var initAborted = false;
+var customFetch = false;
 /**
  * @deprecated Use `setWasmPaths` instead.
  * Sets the path to the `.wasm` file which will be fetched when the wasm
@@ -5009,7 +5078,8 @@ let customFetch = false;
  *
  * @doc {heading: 'Environment', namespace: 'wasm'}
  */
-function setWasmPath(path, usePlatformFetch = false) {
+function setWasmPath(path, usePlatformFetch) {
+    if (usePlatformFetch === void 0) { usePlatformFetch = false; }
     tfjsCore.deprecationWarn('setWasmPath has been deprecated in favor of setWasmPaths and' +
         ' will be removed in a future release.');
     if (initAborted) {
@@ -5044,7 +5114,8 @@ function setWasmPath(path, usePlatformFetch = false) {
  *
  * @doc {heading: 'Environment', namespace: 'wasm'}
  */
-function setWasmPaths(prefixOrFileMap, usePlatformFetch = false) {
+function setWasmPaths(prefixOrFileMap, usePlatformFetch) {
+    if (usePlatformFetch === void 0) { usePlatformFetch = false; }
     if (initAborted) {
         throw new Error('The WASM backend was already initialized. Make sure you call ' +
             '`setWasmPaths()` before you call `tf.setBackend()` or ' +
@@ -5055,12 +5126,12 @@ function setWasmPaths(prefixOrFileMap, usePlatformFetch = false) {
     }
     else {
         wasmFileMap = prefixOrFileMap;
-        const missingPaths = wasmBinaryNames.filter(name => wasmFileMap[name] == null);
+        var missingPaths = wasmBinaryNames.filter(function (name) { return wasmFileMap[name] == null; });
         if (missingPaths.length > 0) {
-            throw new Error(`There were no entries found for the following binaries: ` +
-                `${missingPaths.join(',')}. Please either call setWasmPaths with a ` +
-                `map providing a path for each binary, or with a string indicating ` +
-                `the directory where all the binaries can be found.`);
+            throw new Error("There were no entries found for the following binaries: " +
+                (missingPaths.join(',') + ". Please either call setWasmPaths with a ") +
+                "map providing a path for each binary, or with a string indicating " +
+                "the directory where all the binaries can be found.");
         }
     }
     customFetch = usePlatformFetch;
@@ -5068,7 +5139,7 @@ function setWasmPaths(prefixOrFileMap, usePlatformFetch = false) {
 
 /** @license See the LICENSE file. */
 // This code is auto-generated, do not modify this file!
-const version = '0.0.0';
+var version = '0.0.0';
 
 /**
  * @license
@@ -5086,11 +5157,19 @@ const version = '0.0.0';
  * limitations under the License.
  * =============================================================================
  */
-const WASM_PRIORITY = 2;
-tfjsCore.registerBackend('wasm', () => __awaiter(undefined, void 0, void 0, function* () {
-    const { wasm } = yield init();
-    return new BackendWasm(wasm);
-}), WASM_PRIORITY);
+var _this$1 = undefined;
+var WASM_PRIORITY = 2;
+tfjsCore.registerBackend('wasm', function () { return __awaiter(_this$1, void 0, void 0, function () {
+    var wasm;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, init()];
+            case 1:
+                wasm = (_a.sent()).wasm;
+                return [2 /*return*/, new BackendWasm(wasm)];
+        }
+    });
+}); }, WASM_PRIORITY);
 
 exports.BackendWasm = BackendWasm;
 exports.setWasmPath = setWasmPath;
