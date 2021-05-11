@@ -12,6 +12,9 @@ configPlugin({
   fetchFunc: fetchFunc(),
 })
 
+tf.env().set('WASM_HAS_SIMD_SUPPORT', false);
+tf.env().set('WASM_HAS_MULTITHREAD_SUPPORT', false);
+
 setWasmPaths(
   {
     'tfjs-backend-wasm.wasm': '/tfjs-backend-wasm.wasm',
